@@ -22,8 +22,8 @@ use Status::*;
 
 fn main() -> io::Result<()> {
     match deal_arg()? {
-        REPL => repl::repl()?,
-        EVAL(exp) => match r2(&exp) {
+        Some(REPL) => repl::repl()?,
+        Some(EVAL(exp)) => match r2(&exp) {
             Ok(ret) => {
                 println!("{}", ret);
             }
@@ -31,12 +31,13 @@ fn main() -> io::Result<()> {
                 println!("Error: \n{}", err_info(&exp, e));
             }
         },
+        None => (),
     }
 
     Ok(())
 }
 
-fn deal_arg() -> io::Result<Status> {
+fn deal_arg() -> io::Result<Option<Status>> {
     let matches = clap_app!(r2c =>
         (author: "Chris Ever. <chirsz@foxmail.com>")
         (about: "R2 Interpreter Implemented with Rust")
@@ -51,13 +52,15 @@ fn deal_arg() -> io::Result<Status> {
         REPL
     } else if let Some(expression) = matches.value_of("expression") {
         EVAL(expression.to_string())
-    } else {
-        let fname = matches.value_of("INPUT").unwrap();
+    } else if let Some(fname) = matches.value_of("INPUT") {
         let mut f = File::open(&fname)?;
         let mut source = String::new();
         f.read_to_string(&mut source)?;
         EVAL(source)
+    } else {
+        println!("{}", matches.usage());
+        return Ok(None);
     };
 
-    Ok(status)
+    Ok(Some(status))
 }
