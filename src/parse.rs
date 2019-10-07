@@ -178,7 +178,7 @@ mod test {
    (let ([f (lambda (y) (* x y))])
      (let ([x 4])
        (f 3))))",
-            Number(6),
+            Number(6.into()),
         );
     }
 
@@ -201,11 +201,11 @@ mod test {
 
     #[test]
     fn church_true_test() {
-        eval_eq("(((is_zero 0) 1) 2)", Number(1))
+        eval_eq("(((is_zero 0) 1) 2)", Number(1.into()))
     }
 
     #[test]
     fn church_false_test() {
-        eval_eq("(((is_zero 1) 1) 2)", Number(2))
+        eval_eq("(((is_zero 1) 1) 2)", Number(2.into()))
     }
 }
