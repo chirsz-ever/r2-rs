@@ -1,3 +1,7 @@
+
+use std::fmt;
+use nom::error::{VerboseError, convert_error as nom_convert_error};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AST {
     Symbol(String),
@@ -77,6 +81,21 @@ pub enum RetValue {
     Lambda(Closure),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Closure {
+    pub f: Box<AST>,
+    pub env: Env,
+}
+
+impl fmt::Display for RetValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RetValue::Number(n) => write!(f, "{}", n),
+            RetValue::Lambda(c) => write!(f, "<function {:p}>", c),
+        }
+    }
+}
+
 pub type Env = Vec<(String, RetValue)>;
 
 pub fn lookup<'a>(env: &'a Env, x: &str) -> Result<&'a RetValue, String> {
@@ -96,19 +115,43 @@ pub fn env0() -> Env {
     Vec::new()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Closure {
-    pub f: Box<AST>,
-    pub env: Env,
+#[derive(Debug, Clone)]
+pub enum R2Error<'a> {
+    ParseError(VerboseError<&'a str>),
+    RuntimeError(String),
 }
 
-use std::fmt;
-
-impl fmt::Display for RetValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RetValue::Number(n) => write!(f, "{}", n),
-            RetValue::Lambda(c) => write!(f, "<function {:p}>", c),
-        }
+impl<'a> From<VerboseError<&'a str>> for R2Error<'a> {
+    fn from(e: VerboseError<&'a str>) -> R2Error<'a> {
+        R2Error::ParseError(e)
     }
+}
+
+impl From<String> for R2Error<'_> {
+    fn from(info: String)-> Self {
+        R2Error::RuntimeError(info)
+    }
+}
+
+// FIXME: nom bug (https://github.com/Geal/nom/issues/1027)
+fn convert_error(data: &str, e: VerboseError<&str>) -> String {
+    let backup = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| ()));
+    let msg = std::panic::catch_unwind(|| nom_convert_error(&data, e))
+                            .unwrap_or_else(|_| String::from("Early End"));
+    std::panic::set_hook(backup);
+    msg
+}
+
+pub fn err_info(data: &str, e: R2Error<'_>) -> String {
+    match e {
+        R2Error::ParseError(ve) => convert_error(data, ve),
+        R2Error::RuntimeError(re) => re,
+    }
+}
+
+pub fn r2(exp: &str) -> Result<RetValue, R2Error<'_>> {
+    use crate::eval::interp;
+    use crate::parse::parse_r2;
+    interp(&parse_r2(&exp)?, &env0()).map_err(R2Error::from)
 }

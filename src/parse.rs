@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::utils::*;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -182,45 +182,30 @@ mod test {
         );
     }
 
-    use crate::eval::{church_true,church_false};
+    use crate::eval::{church_false, church_true};
 
     #[test]
     fn is_zero_1() {
-        eval_eq(
-            "(is_zero 0)",
-            church_true(),
-        )
+        eval_eq("(is_zero 0)", church_true())
     }
 
     #[test]
     fn is_zero_2() {
-        eval_eq(
-            "(is_zero 2)",
-            church_false(),
-        )
+        eval_eq("(is_zero 2)", church_false())
     }
 
     #[test]
     fn is_zero_3() {
-        eval_eq(
-            "(is_zero (lambda (x) x))",
-            church_false(),
-        )
+        eval_eq("(is_zero (lambda (x) x))", church_false())
     }
 
     #[test]
     fn church_true_test() {
-        eval_eq(
-            "(((is_zero 0) 1) 2)",
-            Number(1),
-        )
+        eval_eq("(((is_zero 0) 1) 2)", Number(1))
     }
 
     #[test]
     fn church_false_test() {
-        eval_eq(
-            "(((is_zero 1) 1) 2)",
-            Number(2),
-        )
+        eval_eq("(((is_zero 1) 1) 2)", Number(2))
     }
 }

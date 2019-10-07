@@ -6,13 +6,11 @@ extern crate clap;
 mod eval;
 mod parse;
 mod repl;
-mod types;
+mod utils;
 
-use eval::interp;
-use parse::parse_r2;
 use std::fs::File;
 use std::io::{self, prelude::*};
-use types::{env0, RetValue};
+use utils::{r2, err_info};
 
 #[derive(Debug)]
 enum Status {
@@ -26,8 +24,15 @@ fn main() -> io::Result<()> {
     match deal_arg()? {
         REPL => repl::repl()?,
         EVAL(exp) => {
-            let r = r2(&exp).unwrap();
-            println!("{}", r);
+            match r2(&exp) {
+                Ok(ret) => {
+                    println!("{}", ret);
+                }
+                Err(e) => {
+                    println!("Error: \n{}", err_info(&exp, e));
+                }
+            }
+            
         }
     }
 
@@ -60,6 +65,3 @@ fn deal_arg() -> io::Result<Status> {
     Ok(status)
 }
 
-fn r2(exp: &str) -> Result<RetValue, String> {
-    interp(&parse_r2(&exp).unwrap(), &env0())
-}

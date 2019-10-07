@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::utils::*;
 use RetValue::*;
 use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Symbol};
 
@@ -134,45 +134,30 @@ mod test {
     #[test]
     fn is_zero_1() {
         // (is_zero 0)
-        eval_eq(
-            func("is_zero", num(0)),
-            church_true(),
-        )
+        eval_eq(func("is_zero", num(0)), church_true())
     }
 
     #[test]
     fn is_zero_2() {
         // (is_zero 2)
-        eval_eq(
-            func("is_zero", num(2)),
-            church_false(),
-        )
+        eval_eq(func("is_zero", num(2)), church_false())
     }
 
     #[test]
     fn is_zero_3() {
         // (is_zero (lambda (x) x))
-        eval_eq(
-            func("is_zero", def("x", var("x"))),
-            church_false(),
-        )
+        eval_eq(func("is_zero", def("x", var("x"))), church_false())
     }
 
     #[test]
     fn church_true_test() {
         // (((is_zero 0) 1) 2)
-        eval_eq(
-            app(app(func("is_zero", num(0)), num(1)), num(2)),
-            Number(1),
-        )
+        eval_eq(app(app(func("is_zero", num(0)), num(1)), num(2)), Number(1))
     }
 
     #[test]
     fn church_false_test() {
         // (((is_zero 1) 1) 2)
-        eval_eq(
-            app(app(func("is_zero", num(1)), num(1)), num(2)),
-            Number(2),
-        )
+        eval_eq(app(app(func("is_zero", num(1)), num(1)), num(2)), Number(2))
     }
 }

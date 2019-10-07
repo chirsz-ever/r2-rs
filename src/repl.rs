@@ -1,4 +1,5 @@
-use super::r2;
+
+use crate::utils::*;
 use rustyline::{
     config::Config,
     error::ReadlineError,
@@ -17,11 +18,18 @@ pub fn repl() -> io::Result<()> {
     for readline in rl.iter("> ") {
         match readline {
             Ok(line) => {
+                let line = line.trim();
                 if line.is_empty() {
                     continue;
                 }
-                let r = r2(&line).unwrap();
-                println!("{}", r);
+                match r2(&line) {
+                    Ok(ret) => {
+                        println!("{}", ret);
+                    }
+                    Err(e) => {
+                        println!("Error: \n{}", err_info(&line, e));
+                    }
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Exit");
