@@ -10,7 +10,7 @@ mod utils;
 
 use std::fs::File;
 use std::io::{self, prelude::*};
-use utils::{r2, err_info};
+use utils::{err_info, r2};
 
 #[derive(Debug)]
 enum Status {
@@ -23,17 +23,14 @@ use Status::*;
 fn main() -> io::Result<()> {
     match deal_arg()? {
         REPL => repl::repl()?,
-        EVAL(exp) => {
-            match r2(&exp) {
-                Ok(ret) => {
-                    println!("{}", ret);
-                }
-                Err(e) => {
-                    println!("Error: \n{}", err_info(&exp, e));
-                }
+        EVAL(exp) => match r2(&exp) {
+            Ok(ret) => {
+                println!("{}", ret);
             }
-            
-        }
+            Err(e) => {
+                println!("Error: \n{}", err_info(&exp, e));
+            }
+        },
     }
 
     Ok(())
@@ -64,4 +61,3 @@ fn deal_arg() -> io::Result<Status> {
 
     Ok(status)
 }
-

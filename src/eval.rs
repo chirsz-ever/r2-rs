@@ -12,7 +12,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
         })),
         Bind { x, e1, e2 } => {
             let v1 = interp(e1, env)?;
-            interp(e2, &ext_env(env.clone(), x.clone(), v1))
+            interp(e2, &ext_env(env, x.clone(), v1))
         }
         Application { e1, e2 } => {
             let v1 = interp(e1, env)?;
@@ -20,7 +20,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
             let v1info = format!("{:?}", v1);
             if let Lambda(Closure { f, env: env_save }) = v1 {
                 if let LambdaDef { x, e } = *f {
-                    return interp(&e, &ext_env(env_save, x, v2));
+                    return interp(&e, &ext_env(&env_save, x, v2));
                 }
             }
             Err(format!("{} can't be function", v1info))

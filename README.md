@@ -20,4 +20,5 @@ R2 interpreter implemented with Rust
 - [x] REPL 错误时提示而非 panic
 - [x] 使用 nom 的 VerboseError 提供更好的错误提示
 - [ ] REPL 中增加大环境和 ~~let~~ define 语法，使得前面行中定义的变量在后面可用 
-- [ ] 使用 `Rc` 链表作为 `Env` 类型
+- [x] 使用 `Rc` 链表作为 `Env` 类型
+- [ ] 使用某 `BigInt` 作为整型

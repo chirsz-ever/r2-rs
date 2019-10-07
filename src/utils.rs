@@ -1,6 +1,6 @@
-
+use nom::error::{convert_error as nom_convert_error, VerboseError};
 use std::fmt;
-use nom::error::{VerboseError, convert_error as nom_convert_error};
+use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AST {
@@ -96,23 +96,35 @@ impl fmt::Display for RetValue {
     }
 }
 
-pub type Env = Vec<(String, RetValue)>;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Env(Option<Rc<EnvNode>>);
 
-pub fn lookup<'a>(env: &'a Env, x: &str) -> Result<&'a RetValue, String> {
-    env.iter()
-        .rev()
-        .find(|(s, _v)| s == x)
-        .map(|(_, v)| v)
-        .ok_or_else(|| format!("undefined variable {:?}", x))
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EnvNode {
+    kv: (String, RetValue),
+    next: Option<Rc<EnvNode>>,
 }
 
-pub fn ext_env(mut env: Env, x: String, v: RetValue) -> Env {
-    env.push((x, v));
-    env
+pub fn lookup<'a>(env: &'a Env, x: &str) -> Result<&'a RetValue, String> {
+    let mut next = &env.0;
+    while let Some(node) = next {
+        if node.kv.0 == x {
+            return Ok(&node.kv.1);
+        }
+        next = &node.next;
+    }
+    Err(format!("undefined variable \"{}\"", x))
+}
+
+pub fn ext_env(env: &Env, x: String, v: RetValue) -> Env {
+    Env(Some(Rc::new(EnvNode {
+        kv: (x, v),
+        next: env.0.clone(),
+    })))
 }
 
 pub fn env0() -> Env {
-    Vec::new()
+    Env(None)
 }
 
 #[derive(Debug, Clone)]
@@ -128,7 +140,7 @@ impl<'a> From<VerboseError<&'a str>> for R2Error<'a> {
 }
 
 impl From<String> for R2Error<'_> {
-    fn from(info: String)-> Self {
+    fn from(info: String) -> Self {
         R2Error::RuntimeError(info)
     }
 }
@@ -138,7 +150,7 @@ fn convert_error(data: &str, e: VerboseError<&str>) -> String {
     let backup = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| ()));
     let msg = std::panic::catch_unwind(|| nom_convert_error(&data, e))
-                            .unwrap_or_else(|_| String::from("Early End"));
+        .unwrap_or_else(|_| String::from("Early End"));
     std::panic::set_hook(backup);
     msg
 }

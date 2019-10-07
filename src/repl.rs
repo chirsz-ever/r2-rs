@@ -1,4 +1,3 @@
-
 use crate::utils::*;
 use rustyline::{
     config::Config,
