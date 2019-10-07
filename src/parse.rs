@@ -136,27 +136,27 @@ mod test {
 
     #[test]
     fn yin_1() {
-        eval_eq(r"(+ 1 2)", Number(3));
+        eval_eq(r"(+ 1 2)", Number(3.into()));
     }
 
     #[test]
     fn yin_2() {
-        eval_eq(r"(* 2 3)", Number(6));
+        eval_eq(r"(* 2 3)", Number(6.into()));
     }
 
     #[test]
     fn yin_3() {
-        eval_eq(r"(* 2 (+ 3 4))", Number(14));
+        eval_eq(r"(* 2 (+ 3 4))", Number(14.into()));
     }
 
     #[test]
     fn yin_4() {
-        eval_eq(r"(* (+ 1 2) (+ 3 4))", Number(21));
+        eval_eq(r"(* (+ 1 2) (+ 3 4))", Number(21.into()));
     }
 
     #[test]
     fn yin_5() {
-        eval_eq(r"((lambda (x) (* 2 x)) 3)", Number(6));
+        eval_eq(r"((lambda (x) (* 2 x)) 3)", Number(6.into()));
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod test {
 (let ([x 2])
    (let ([f (lambda (y) (* x y))])
      (f 3)))",
-            Number(6),
+            Number(6.into()),
         );
     }
 

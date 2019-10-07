@@ -1,11 +1,12 @@
 use nom::error::{convert_error as nom_convert_error, VerboseError};
+use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AST {
     Symbol(String),
-    Number(i32),
+    Number(BigInt),
     LambdaDef {
         x: String,
         e: Box<AST>,
@@ -46,7 +47,7 @@ pub fn def(x: &str, e: AST) -> AST {
 }
 
 pub fn num(n: i32) -> AST {
-    AST::Number(n)
+    AST::Number(n.into())
 }
 
 pub fn var(x: &str) -> AST {
@@ -77,7 +78,7 @@ pub fn func(f: &str, e: AST) -> AST {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RetValue {
-    Number(i32),
+    Number(BigInt),
     Lambda(Closure),
 }
 

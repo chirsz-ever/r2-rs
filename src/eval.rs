@@ -5,7 +5,7 @@ use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Symbol};
 pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
     match exp {
         Symbol(x) => Ok(lookup(&env, &x)?.clone()),
-        AST::Number(n) => Ok(Number(*n)),
+        AST::Number(n) => Ok(Number(n.clone())),
         LambdaDef { .. } => Ok(Lambda(Closure {
             f: Box::new(exp.clone()),
             env: env.clone(),
@@ -42,10 +42,9 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
         BuiltInFunc { f, e } => {
             if f == "is_zero" {
                 let v = interp(e, env)?;
-                if let Number(0) = v {
-                    Ok(church_true())
-                } else {
-                    Ok(church_false())
+                match v {
+                    Number(ref n) if n == &0.into() => Ok(church_true()),
+                    _ => Ok(church_false()),
                 }
             } else {
                 Err(format!("undefined function: {}", f))
@@ -78,25 +77,28 @@ mod test {
 
     #[test]
     fn yin_1() {
-        eval_eq(op('+', num(1), num(2)), Number(3));
+        eval_eq(op('+', num(1), num(2)), Number(3.into()));
     }
 
     #[test]
     fn yin_2() {
-        eval_eq(op('*', num(2), num(3)), Number(6));
+        eval_eq(op('*', num(2), num(3)), Number(6.into()));
     }
 
     #[test]
     fn yin_3() {
         eval_eq(
             op('*', op('+', num(1), num(2)), op('+', num(3), num(4))),
-            Number(21),
+            Number(21.into()),
         );
     }
 
     #[test]
     fn yin_4() {
-        eval_eq(app(def("x", op('*', num(2), var("x"))), num(3)), Number(6));
+        eval_eq(
+            app(def("x", op('*', num(2), var("x"))), num(3)),
+            Number(6.into()),
+        );
     }
 
     #[test]
@@ -111,7 +113,7 @@ mod test {
                     app(var("f"), num(3)),
                 ),
             ),
-            Number(6),
+            Number(6.into()),
         )
     }
 
@@ -127,7 +129,7 @@ mod test {
                     bind("x", num(4), app(var("f"), num(3))),
                 ),
             ),
-            Number(6),
+            Number(6.into()),
         )
     }
 
@@ -152,12 +154,18 @@ mod test {
     #[test]
     fn church_true_test() {
         // (((is_zero 0) 1) 2)
-        eval_eq(app(app(func("is_zero", num(0)), num(1)), num(2)), Number(1))
+        eval_eq(
+            app(app(func("is_zero", num(0)), num(1)), num(2)),
+            Number(1.into()),
+        )
     }
 
     #[test]
     fn church_false_test() {
         // (((is_zero 1) 1) 2)
-        eval_eq(app(app(func("is_zero", num(1)), num(1)), num(2)), Number(2))
+        eval_eq(
+            app(app(func("is_zero", num(1)), num(1)), num(2)),
+            Number(2.into()),
+        )
     }
 }
