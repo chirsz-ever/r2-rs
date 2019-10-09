@@ -54,18 +54,24 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
     }
 }
 
-pub fn church_true() -> RetValue {
-    Lambda(Closure {
+thread_local! {
+    static CHURCH_TRUE: RetValue = Lambda(Closure {
         f: Rc::new(def("x", def("y", var("x")))),
         env: env0(),
-    })
+    });
+
+    static CHURCH_FALSE: RetValue = Lambda(Closure {
+        f: Rc::new(def("x", def("y", var("y")))),
+        env: env0(),
+    });
+}
+
+pub fn church_true() -> RetValue {
+    CHURCH_TRUE.with(|t| t.clone())
 }
 
 pub fn church_false() -> RetValue {
-    Lambda(Closure {
-        f: Rc::new(def("x", def("y", var("y")))),
-        env: env0(),
-    })
+    CHURCH_FALSE.with(|f| f.clone())
 }
 
 #[cfg(test)]
