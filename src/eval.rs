@@ -1,4 +1,5 @@
 use crate::utils::*;
+use std::rc::Rc;
 use RetValue::*;
 use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Symbol};
 
@@ -7,7 +8,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
         Symbol(x) => Ok(lookup(&env, &x)?.clone()),
         AST::Number(n) => Ok(Number(n.clone())),
         LambdaDef { .. } => Ok(Lambda(Closure {
-            f: Box::new(exp.clone()),
+            f: Rc::new(exp.clone()),
             env: env.clone(),
         })),
         Bind { x, e1, e2 } => {
@@ -19,8 +20,8 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
             let v2 = interp(e2, env)?;
             let v1info = format!("{:?}", v1);
             if let Lambda(Closure { f, env: env_save }) = v1 {
-                if let LambdaDef { x, e } = *f {
-                    return interp(&e, &ext_env(&env_save, x, v2));
+                if let LambdaDef { x, e } = &*f {
+                    return interp(&e, &ext_env(&env_save, x.clone(), v2));
                 }
             }
             Err(format!("{} can't be function", v1info))
@@ -55,14 +56,14 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
 
 pub fn church_true() -> RetValue {
     Lambda(Closure {
-        f: Box::new(def("x", def("y", var("x")))),
+        f: Rc::new(def("x", def("y", var("x")))),
         env: env0(),
     })
 }
 
 pub fn church_false() -> RetValue {
     Lambda(Closure {
-        f: Box::new(def("x", def("y", var("y")))),
+        f: Rc::new(def("x", def("y", var("y")))),
         env: env0(),
     })
 }

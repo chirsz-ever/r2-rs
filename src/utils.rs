@@ -7,42 +7,25 @@ use std::rc::Rc;
 pub enum AST {
     Symbol(String),
     Number(BigInt),
-    LambdaDef {
-        x: String,
-        e: Box<AST>,
-    },
-    Bind {
-        x: String,
-        e1: Box<AST>,
-        e2: Box<AST>,
-    },
-    Application {
-        e1: Box<AST>,
-        e2: Box<AST>,
-    },
-    BuiltInFunc {
-        f: String,
-        e: Box<AST>,
-    },
-    BuiltInOp {
-        op: char,
-        e1: Box<AST>,
-        e2: Box<AST>,
-    },
+    LambdaDef { x: String, e: Rc<AST> },
+    Bind { x: String, e1: Rc<AST>, e2: Rc<AST> },
+    Application { e1: Rc<AST>, e2: Rc<AST> },
+    BuiltInFunc { f: String, e: Rc<AST> },
+    BuiltInOp { op: char, e1: Rc<AST>, e2: Rc<AST> },
 }
 
 pub fn op(op: char, e1: AST, e2: AST) -> AST {
     AST::BuiltInOp {
         op,
-        e1: Box::new(e1),
-        e2: Box::new(e2),
+        e1: Rc::new(e1),
+        e2: Rc::new(e2),
     }
 }
 
 pub fn def(x: &str, e: AST) -> AST {
     AST::LambdaDef {
         x: x.to_string(),
-        e: Box::new(e),
+        e: Rc::new(e),
     }
 }
 
@@ -57,22 +40,22 @@ pub fn var(x: &str) -> AST {
 pub fn bind(x: &str, e1: AST, e2: AST) -> AST {
     AST::Bind {
         x: x.to_string(),
-        e1: Box::new(e1),
-        e2: Box::new(e2),
+        e1: Rc::new(e1),
+        e2: Rc::new(e2),
     }
 }
 
 pub fn app(e1: AST, e2: AST) -> AST {
     AST::Application {
-        e1: Box::new(e1),
-        e2: Box::new(e2),
+        e1: Rc::new(e1),
+        e2: Rc::new(e2),
     }
 }
 
 pub fn func(f: &str, e: AST) -> AST {
     AST::BuiltInFunc {
         f: f.to_string(),
-        e: Box::new(e),
+        e: Rc::new(e),
     }
 }
 
@@ -84,7 +67,7 @@ pub enum RetValue {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Closure {
-    pub f: Box<AST>,
+    pub f: Rc<AST>,
     pub env: Env,
 }
 
