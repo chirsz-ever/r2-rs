@@ -41,7 +41,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
             }
         }
         BuiltInFunc { f, e } => {
-            if f == "is_zero" {
+            if "is_zero" == &**f {
                 let v = interp(e, env)?;
                 match v {
                     Number(ref n) if n == &0.into() => Ok(church_true()),
