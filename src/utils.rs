@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AST {
-    Symbol(Rc<str>),
+    Identifier(Rc<str>),
     Number(BigInt),
     LambdaDef { x: Rc<str>, e: Rc<AST> },
     Bind { x: Rc<str>, e1: Rc<AST>, e2: Rc<AST> },
@@ -34,7 +34,7 @@ pub fn num(n: i32) -> AST {
 }
 
 pub fn var(x: &str) -> AST {
-    AST::Symbol(x.into())
+    AST::Identifier(x.into())
 }
 
 pub fn bind(x: &str, e1: AST, e2: AST) -> AST {

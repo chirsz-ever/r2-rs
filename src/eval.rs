@@ -1,11 +1,11 @@
 use crate::utils::*;
 use std::rc::Rc;
 use RetValue::*;
-use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Symbol};
+use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Identifier};
 
 pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
     match exp {
-        Symbol(x) => Ok(lookup(&env, &x)?.clone()),
+        Identifier(x) => Ok(lookup(&env, &x)?.clone()),
         AST::Number(n) => Ok(Number(n.clone())),
         LambdaDef { .. } => Ok(Lambda(Closure {
             f: Rc::new(exp.clone()),
