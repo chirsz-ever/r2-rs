@@ -2,17 +2,18 @@ use crate::utils::*;
 use rustyline::{
     config::Config,
     error::ReadlineError,
-    highlight::{Highlighter, MatchingBracketHighlighter},
+    highlight::*,
+    validate::*,
     Editor,
 };
-use rustyline_derive::{Completer, Helper, Hinter};
+use rustyline_derive::{Completer, Helper, Hinter, Validator};
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::io;
 
 pub fn repl() -> io::Result<()> {
     let conf = Config::builder().auto_add_history(true).build();
     let mut rl = Editor::with_config(conf);
-    rl.set_helper(Some(MyHelper::new()));
+    rl.set_helper(Some(MyHelper::default()));
 
     for readline in rl.iter("> ") {
         match readline {
@@ -47,23 +48,12 @@ pub fn repl() -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Helper, Hinter, Completer)]
+#[derive(Helper, Hinter, Completer, Default)]
 struct MyHelper {
     completer: (),
     highlighter: MatchingBracketHighlighter,
     hinter: (),
-    colored_prompt: String,
-}
-
-impl MyHelper {
-    fn new() -> Self {
-        MyHelper {
-            completer: (),
-            highlighter: MatchingBracketHighlighter::new(),
-            hinter: (),
-            colored_prompt: "".to_owned(),
-        }
-    }
+    validator: MatchingBracketValidator,
 }
 
 impl Highlighter for MyHelper {
@@ -85,5 +75,18 @@ impl Highlighter for MyHelper {
 
     fn highlight_char(&self, line: &str, pos: usize) -> bool {
         self.highlighter.highlight_char(line, pos)
+    }
+}
+
+impl Validator for MyHelper {
+    fn validate(
+        &self,
+        ctx: &mut ValidationContext,
+    ) -> rustyline::Result<ValidationResult> {
+        self.validator.validate(ctx)
+    }
+
+    fn validate_while_typing(&self) -> bool {
+        self.validator.validate_while_typing()
     }
 }
