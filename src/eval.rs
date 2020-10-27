@@ -1,13 +1,14 @@
 use crate::utils::*;
+use anyhow::format_err;
 use std::rc::Rc;
 use RetValue::*;
 use AST::{Application, Bind, BuiltInFunc, BuiltInOp, Identifier, LambdaDef};
 
-pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
+pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
     match exp {
         Identifier(x) => Ok(env
             .lookup(&x)
-            .ok_or_else(|| format!("undefined variable \"{}\"", x))?
+            .ok_or_else(|| format_err!("undefined variable \"{}\"", x))?
             .clone()),
         AST::Number(n) => Ok(Number(n.clone())),
         LambdaDef { .. } => Ok(Lambda(Closure {
@@ -27,7 +28,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
                     return interp(&e, &env_save.extend(x.clone(), v2));
                 }
             }
-            Err(format!("{} can't be function", v1info))
+            Err(format_err!("{} can't be function", v1info))
         }
         BuiltInOp { op, e1, e2 } => {
             let v1 = interp(e1, env)?;
@@ -38,9 +39,9 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
                     '-' => v1 - v2,
                     '*' => v1 * v2,
                     '/' => v1 / v2,
-                    _ => return Err(format!("{:?} is not a valid binary op", op)),
+                    _ => return Err(format_err!("{:?} is not a valid binary op", op)),
                 })),
-                _ => Err("wrong argument".to_string()),
+                _ => Err(format_err!("wrong argument")),
             }
         }
         BuiltInFunc { f, e } => {
@@ -51,7 +52,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
                     _ => Ok(church_false()),
                 }
             } else {
-                Err(format!("undefined function: {}", f))
+                Err(format_err!("undefined function: {}", f))
             }
         }
     }

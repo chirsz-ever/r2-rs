@@ -1,4 +1,4 @@
-use nom::error::{convert_error, VerboseError};
+use nom::error::convert_error;
 use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
@@ -130,33 +130,12 @@ impl Env {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum R2Error<'a> {
-    ParseError(VerboseError<&'a str>),
-    RuntimeError(String),
-}
-
-impl<'a> From<VerboseError<&'a str>> for R2Error<'a> {
-    fn from(e: VerboseError<&'a str>) -> R2Error<'a> {
-        R2Error::ParseError(e)
-    }
-}
-
-impl From<String> for R2Error<'_> {
-    fn from(info: String) -> Self {
-        R2Error::RuntimeError(info)
-    }
-}
-
-pub fn err_info(data: &str, e: R2Error<'_>) -> String {
-    match e {
-        R2Error::ParseError(ve) => convert_error(data, ve),
-        R2Error::RuntimeError(re) => re,
-    }
-}
-
-pub fn r2(exp: &str) -> Result<RetValue, R2Error<'_>> {
+pub fn r2(exp: &str) -> anyhow::Result<RetValue> {
     use crate::eval::interp;
     use crate::parse::parse_r2;
-    interp(&parse_r2(&exp)?, &Env::new()).map_err(R2Error::from)
+    let ast = match parse_r2(&exp) {
+        Ok(ast) => ast,
+        Err(ve) => anyhow::bail!(convert_error(exp, ve)),
+    };
+    interp(&ast, &Env::new())
 }

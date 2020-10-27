@@ -21,7 +21,7 @@ pub fn repl() -> io::Result<()> {
                         println!("{}", ret);
                     }
                     Err(e) => {
-                        println!("Error: \n{}", err_info(&line, e));
+                        println!("Error: \n{}", e);
                     }
                 }
             }

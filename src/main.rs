@@ -10,7 +10,7 @@ mod utils;
 
 use std::fs::File;
 use std::io::{self, prelude::*};
-use utils::{err_info, r2};
+use utils::r2;
 
 #[derive(Debug)]
 enum Status {
@@ -28,7 +28,7 @@ fn main() -> io::Result<()> {
                 println!("{}", ret);
             }
             Err(e) => {
-                println!("Error: \n{}", err_info(&exp, e));
+                println!("Error: \n{}", e);
             }
         },
         None => (),
