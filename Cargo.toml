@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 nom = "5"
 rustyline = "5"
-clap = "2.33.0"
+clap = "2.33"
 rustyline-derive = "0.2.0"
-num-bigint = "0.2.3"
+num-bigint = "0.3"

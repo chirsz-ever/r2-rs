@@ -1,4 +1,4 @@
-use nom::error::{convert_error as nom_convert_error, VerboseError};
+use nom::error::{convert_error, VerboseError};
 use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
@@ -127,16 +127,6 @@ impl From<String> for R2Error<'_> {
     fn from(info: String) -> Self {
         R2Error::RuntimeError(info)
     }
-}
-
-// FIXME: nom bug (https://github.com/Geal/nom/issues/1027)
-fn convert_error(data: &str, e: VerboseError<&str>) -> String {
-    let backup = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| ()));
-    let msg = std::panic::catch_unwind(|| nom_convert_error(&data, e))
-        .unwrap_or_else(|_| String::from("Early End"));
-    std::panic::set_hook(backup);
-    msg
 }
 
 pub fn err_info(data: &str, e: R2Error<'_>) -> String {
