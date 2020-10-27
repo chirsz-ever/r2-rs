@@ -130,7 +130,7 @@ mod test {
 
     fn eval_eq(exp: &str, v: RetValue) {
         let (_, ast) = parse_expr(exp.trim()).unwrap();
-        let r = interp(&ast, &env0()).unwrap();
+        let r = interp(&ast, &Env::new()).unwrap();
         assert_eq!(r, v);
     }
 

@@ -1,11 +1,14 @@
 use crate::utils::*;
 use std::rc::Rc;
 use RetValue::*;
-use AST::{Application, Bind, BuiltInFunc, BuiltInOp, LambdaDef, Identifier};
+use AST::{Application, Bind, BuiltInFunc, BuiltInOp, Identifier, LambdaDef};
 
 pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
     match exp {
-        Identifier(x) => Ok(lookup(&env, &x)?.clone()),
+        Identifier(x) => Ok(env
+            .lookup(&x)
+            .ok_or_else(|| format!("undefined variable \"{}\"", x))?
+            .clone()),
         AST::Number(n) => Ok(Number(n.clone())),
         LambdaDef { .. } => Ok(Lambda(Closure {
             f: Rc::new(exp.clone()),
@@ -13,7 +16,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
         })),
         Bind { x, e1, e2 } => {
             let v1 = interp(e1, env)?;
-            interp(e2, &ext_env(env, x.clone(), v1))
+            interp(e2, &env.extend(x.clone(), v1))
         }
         Application { e1, e2 } => {
             let v1 = interp(e1, env)?;
@@ -21,7 +24,7 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
             let v1info = format!("{:?}", v1);
             if let Lambda(Closure { f, env: env_save }) = v1 {
                 if let LambdaDef { x, e } = &*f {
-                    return interp(&e, &ext_env(&env_save, x.clone(), v2));
+                    return interp(&e, &env_save.extend(x.clone(), v2));
                 }
             }
             Err(format!("{} can't be function", v1info))
@@ -57,12 +60,12 @@ pub fn interp(exp: &AST, env: &Env) -> Result<RetValue, String> {
 thread_local! {
     static CHURCH_TRUE: RetValue = Lambda(Closure {
         f: Rc::new(def("x", def("y", var("x")))),
-        env: env0(),
+        env: Env::new(),
     });
 
     static CHURCH_FALSE: RetValue = Lambda(Closure {
         f: Rc::new(def("x", def("y", var("y")))),
-        env: env0(),
+        env: Env::new(),
     });
 }
 
@@ -79,7 +82,7 @@ mod test {
     use super::*;
 
     fn eval_eq(ast: AST, exp: RetValue) {
-        assert_eq!(interp(&ast, &env0()).unwrap(), exp);
+        assert_eq!(interp(&ast, &Env::new()).unwrap(), exp);
     }
 
     #[test]

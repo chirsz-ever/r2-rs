@@ -7,11 +7,28 @@ use std::rc::Rc;
 pub enum AST {
     Identifier(Rc<str>),
     Number(BigInt),
-    LambdaDef { x: Rc<str>, e: Rc<AST> },
-    Bind { x: Rc<str>, e1: Rc<AST>, e2: Rc<AST> },
-    Application { e1: Rc<AST>, e2: Rc<AST> },
-    BuiltInFunc { f: Rc<str>, e: Rc<AST> },
-    BuiltInOp { op: char, e1: Rc<AST>, e2: Rc<AST> },
+    LambdaDef {
+        x: Rc<str>,
+        e: Rc<AST>,
+    },
+    Bind {
+        x: Rc<str>,
+        e1: Rc<AST>,
+        e2: Rc<AST>,
+    },
+    Application {
+        e1: Rc<AST>,
+        e2: Rc<AST>,
+    },
+    BuiltInFunc {
+        f: Rc<str>,
+        e: Rc<AST>,
+    },
+    BuiltInOp {
+        op: char,
+        e1: Rc<AST>,
+        e2: Rc<AST>,
+    },
 }
 
 pub fn op(op: char, e1: AST, e2: AST) -> AST {
@@ -80,7 +97,7 @@ impl fmt::Display for RetValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Env(Option<Rc<EnvNode>>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -89,26 +106,28 @@ struct EnvNode {
     next: Option<Rc<EnvNode>>,
 }
 
-pub fn lookup<'a>(env: &'a Env, x: &str) -> Result<&'a RetValue, String> {
-    let mut next = &env.0;
-    while let Some(node) = next {
-        if &*node.kv.0 == x {
-            return Ok(&node.kv.1);
-        }
-        next = &node.next;
+impl Env {
+    pub fn new() -> Env {
+        Default::default()
     }
-    Err(format!("undefined variable \"{}\"", x))
-}
 
-pub fn ext_env(env: &Env, x: Rc<str>, v: RetValue) -> Env {
-    Env(Some(Rc::new(EnvNode {
-        kv: (x, v),
-        next: env.0.clone(),
-    })))
-}
+    pub fn lookup(&self, x: &str) -> Option<&RetValue> {
+        let mut next = &self.0;
+        while let Some(node) = next {
+            if &*node.kv.0 == x {
+                return Some(&node.kv.1);
+            }
+            next = &node.next;
+        }
+        None
+    }
 
-pub fn env0() -> Env {
-    Env(None)
+    pub fn extend(&self, x: Rc<str>, v: RetValue) -> Env {
+        Env(Some(Rc::new(EnvNode {
+            kv: (x, v),
+            next: self.0.clone(),
+        })))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -139,5 +158,5 @@ pub fn err_info(data: &str, e: R2Error<'_>) -> String {
 pub fn r2(exp: &str) -> Result<RetValue, R2Error<'_>> {
     use crate::eval::interp;
     use crate::parse::parse_r2;
-    interp(&parse_r2(&exp)?, &env0()).map_err(R2Error::from)
+    interp(&parse_r2(&exp)?, &Env::new()).map_err(R2Error::from)
 }

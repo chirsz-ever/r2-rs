@@ -1,12 +1,6 @@
 use crate::utils::*;
-use rustyline::{
-    config::Config,
-    error::ReadlineError,
-    highlight::*,
-    validate::*,
-    Editor,
-};
-use rustyline_derive::{Completer, Helper, Hinter, Validator};
+use rustyline::{config::Config, error::ReadlineError, highlight::*, validate::*, Editor};
+use rustyline_derive::{Completer, Helper, Hinter};
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::io;
 
@@ -79,10 +73,7 @@ impl Highlighter for MyHelper {
 }
 
 impl Validator for MyHelper {
-    fn validate(
-        &self,
-        ctx: &mut ValidationContext,
-    ) -> rustyline::Result<ValidationResult> {
+    fn validate(&self, ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
         self.validator.validate(ctx)
     }
 
