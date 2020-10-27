@@ -41,7 +41,6 @@ fn deal_arg() -> io::Result<Option<Status>> {
     let matches = clap_app!(r2c =>
         (author: "Chris Ever. <chirsz@foxmail.com>")
         (about: "R2 Interpreter Implemented with Rust")
-        (usage: "r2 <source file>\n    r2 -i\n    r2 -c <expression>")
         (@arg INPUT: conflicts_with[CMD] "Sets the input file to use")
         (@arg REPL: -i conflicts_with[INPUT CMD] "Interactive REPL mode")
         (@arg expression: -c +takes_value "Expression passed in as string")
@@ -58,8 +57,7 @@ fn deal_arg() -> io::Result<Option<Status>> {
         f.read_to_string(&mut source)?;
         EVAL(source)
     } else {
-        println!("{}", matches.usage());
-        return Ok(None);
+        REPL
     };
 
     Ok(Some(status))

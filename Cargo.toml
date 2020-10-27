@@ -1,6 +1,6 @@
 [package]
-name = "r2-rs"
-version = "0.1.0"
+name = "r2c"
+version = "0.2.0"
 authors = ["chirsz <chirsz@foxmail.com>"]
 edition = "2018"
 
