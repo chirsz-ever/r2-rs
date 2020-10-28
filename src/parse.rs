@@ -1,125 +1,77 @@
 use crate::utils::*;
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::*,
-    combinator::*,
-    error::{context, VerboseError},
-    multi::many0,
-    sequence::*,
-    IResult,
-};
 
-type Result<'a, O = AST> = IResult<&'a str, O, VerboseError<&'a str>>;
+use pest::iterators::Pair;
+use pest::Parser;
+use pest_derive::Parser;
 
-pub fn parse_r2(i: &str) -> std::result::Result<AST, VerboseError<&str>> {
-    use nom::Err::*;
-    parse_expr(i.trim())
-        .map(|(_, ast)| ast)
-        .map_err(|err| match err {
-            Error(e) | Failure(e) => e,
-            Incomplete(_) => unreachable!(),
-        })
+#[derive(Parser)]
+#[grammar = "r2.pest"]
+struct R2Parser;
+
+pub fn parse_program(src: &str) -> anyhow::Result<Vec<AST>> {
+    let program = R2Parser::parse(Rule::Program, &src)?.next().unwrap();
+    let mut asts = Vec::new();
+    for sexpr in program.into_inner() {
+        if let Rule::SExpr = sexpr.as_rule() {
+            asts.push(sexpr_to_ast(sexpr)?);
+        }
+    }
+    Ok(asts)
 }
 
-fn parse_expr(i: &str) -> Result<'_> {
-    alt((
-        parse_symbol,
-        parse_number,
-        parse_def,
-        parse_bind,
-        parse_builtin_func,
-        parse_app,
-        parse_builtin_op,
-    ))(i)
+pub fn parse_expr(src: &str) -> anyhow::Result<AST> {
+    let sexpr = R2Parser::parse(Rule::SingleSExpr, &src)?
+        .next()
+        .unwrap()
+        .into_inner()
+        .next()
+        .unwrap();
+    sexpr_to_ast(sexpr)
 }
 
-fn in_paren<'a, O1, F>(inner: F) -> impl Fn(&'a str) -> Result<'a, O1>
-where
-    F: Fn(&'a str) -> Result<'a, O1>,
-{
-    delimited(
-        char('('),
-        sp(inner),
-        context("closing paren", cut(sp(char(')')))),
-    )
-}
-
-fn sp<'a, O1, F>(after: F) -> impl Fn(&'a str) -> Result<'a, O1>
-where
-    F: Fn(&'a str) -> Result<'a, O1>,
-{
-    preceded(multispace0, after)
-}
-
-fn sp1<'a, O1, F>(after: F) -> impl Fn(&'a str) -> Result<'a, O1>
-where
-    F: Fn(&'a str) -> Result<'a, O1>,
-{
-    preceded(multispace1, after)
-}
-
-fn parse_name(i: &str) -> Result<'_, &str> {
-    let head = verify(anychar, |c| c.is_ascii_alphabetic() || *c == '_');
-    let tail = verify(anychar, |c| c.is_ascii_alphanumeric() || *c == '_');
-    recognize(pair(head, many0(tail)))(i)
-}
-
-fn parse_symbol(i: &str) -> Result<'_> {
-    map(parse_name, var)(i)
-}
-
-fn parse_number(i: &str) -> Result<'_> {
-    map_res(recognize(pair(opt(char('-')), digit1)), |s: &str| {
-        s.parse::<i32>()
-    })(i)
-    .map(|(i, n)| (i, num(n)))
-}
-
-fn parse_def(i: &str) -> Result<'_> {
-    let def_inner = map(
-        tuple((
-            tag("lambda"),
-            cut(sp(in_paren(parse_name))),
-            cut(sp(parse_expr)),
-        )),
-        |(_, arg, e)| def(arg, e),
-    );
-    in_paren(def_inner)(i)
-}
-
-fn parse_bind(i: &str) -> Result<'_> {
-    let in_bracket = |inner1, inner2| {
-        delimited(
-            char('['),
-            sp(separated_pair(inner1, multispace1, inner2)),
-            context("closing bracket", cut(sp(char(']')))),
-        )
+fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
+    let inner = sexpr.into_inner().next().unwrap();
+    let ast = match inner.as_rule() {
+        Rule::Integer => num(inner.as_str().parse()?),
+        Rule::Identifier => var(inner.as_str()),
+        Rule::SList => {
+            let inner = inner.into_inner().next().unwrap();
+            let r = inner.as_rule();
+            let mut inner = inner.into_inner();
+            match r {
+                Rule::LambdaDef => {
+                    let x = inner.next().unwrap().as_str();
+                    let e = sexpr_to_ast(inner.next().unwrap())?;
+                    def(x, e)
+                }
+                Rule::Bind => {
+                    let x = inner.next().unwrap().as_str();
+                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
+                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
+                    bind(x, e1, e2)
+                }
+                Rule::BuiltInFuncCall => {
+                    let f = inner.next().unwrap().as_str();
+                    let e = sexpr_to_ast(inner.next().unwrap())?;
+                    func(f, e)
+                }
+                Rule::BuiltInOpCall => {
+                    let opc = inner.next().unwrap().as_str().chars().next().unwrap();
+                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
+                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
+                    op(opc, e1, e2)
+                }
+                Rule::Application => {
+                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
+                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
+                    app(e1, e2)
+                }
+                _ => unreachable!(),
+            }
+        }
+        _ => unreachable!(),
     };
-    let bind_inner = map(
-        tuple((
-            tag("let"),
-            cut(sp(in_paren(in_bracket(parse_name, parse_expr)))),
-            cut(sp(parse_expr)),
-        )),
-        |(_, (sym, e1), e2)| bind(sym, e1, e2),
-    );
-    in_paren(bind_inner)(i)
-}
-
-fn parse_app(i: &str) -> Result<'_> {
-    let app_inner = pair(parse_expr, sp1(parse_expr));
-    map(in_paren(app_inner), |(e1, e2)| app(e1, e2))(i)
-}
-
-fn parse_builtin_op(i: &str) -> Result<'_> {
-    let app_inner = tuple((anychar, sp1(parse_expr), sp1(parse_expr)));
-    map(in_paren(app_inner), |(o, e1, e2)| op(o, e1, e2))(i)
-}
-
-fn parse_builtin_func(i: &str) -> Result<'_> {
-    let is_zero_inner = pair(tag("is_zero"), sp1(parse_expr));
-    map(in_paren(is_zero_inner), |(f, e)| func(f, e))(i)
+    Ok(ast)
 }
 
 #[cfg(test)]
@@ -129,7 +81,7 @@ mod test {
     use RetValue::*;
 
     fn eval_eq(exp: &str, v: RetValue) {
-        let (_, ast) = parse_expr(exp.trim()).unwrap();
+        let ast = parse_expr(exp.trim()).unwrap();
         let r = interp(&ast, &Env::new()).unwrap();
         assert_eq!(r, v);
     }

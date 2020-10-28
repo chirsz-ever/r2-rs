@@ -82,6 +82,10 @@ pub fn church_false() -> RetValue {
 mod test {
     use super::*;
 
+    fn num(n: i32) -> AST {
+        AST::Number(n.into())
+    }
+
     fn eval_eq(ast: AST, exp: RetValue) {
         assert_eq!(interp(&ast, &Env::new()).unwrap(), exp);
     }

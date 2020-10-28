@@ -1,3 +1,5 @@
+use crate::eval::*;
+use crate::parse::*;
 use crate::utils::*;
 use rustyline::{config::Config, error::ReadlineError, highlight::*, validate::*, Editor};
 use rustyline_derive::{Completer, Helper, Hinter};
@@ -16,7 +18,7 @@ pub fn repl() -> io::Result<()> {
                 if line.is_empty() {
                     continue;
                 }
-                match r2(&line) {
+                match parse_expr(&line).and_then(|ast| interp(&ast, &Env::new())) {
                     Ok(ret) => {
                         println!("{}", ret);
                     }

@@ -1,0 +1,65 @@
+Program = { SOI ~ SExpr* ~ EOI }
+
+SingleSExpr = { SOI ~ SExpr ~ EOI }
+
+SExpr = {
+    Literal
+    | Identifier
+    | SList
+}
+
+SList = { "(" ~ SyntaxStruct ~ ")" }
+
+SyntaxStruct = _{
+    LambdaDef
+    | Bind
+    | BuiltInFuncCall
+    | BuiltInOpCall
+    | Application
+}
+
+LambdaDef = { "lambda" ~ "(" ~ Identifier ~ ")" ~ SExpr }
+
+Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ SExpr }
+
+BindPair = _{
+    "(" ~ Identifier ~ SExpr ~ ")"
+    | "[" ~ Identifier ~ SExpr ~ "]"
+}
+
+BuiltInFuncCall = { BuiltInFunc ~ SExpr }
+
+BuiltInOpCall = { BuiltInOp ~ SExpr ~ SExpr }
+
+BuiltInFunc = { "is_zero" }
+
+BuiltInOp = { "+" | "-" | "*" | "/" }
+
+Application = { SExpr ~ SExpr }
+
+Literal = _{
+    Number
+}
+
+Number = _{
+    Integer
+}
+
+Integer = @{
+    ASCII_DIGIT+
+}
+
+Identifier = @{
+    !Literal ~ (ASCII_ALPHANUMERIC | SCHEME_EXT)+
+}
+
+SCHEME_EXT = { 
+    "!" | "$" | "%" | "&" |
+    "*" | "+" | "-" | "." |
+    "/" | ":" | "<" | "=" |
+    ">" | "?" | "@" | "^" |
+    "_" | "~"
+}
+
+WHITESPACE = _{ WHITE_SPACE }
+COMMENT    = _{ ";" ~ (!NEWLINE ~ ANY)* }

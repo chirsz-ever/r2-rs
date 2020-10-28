@@ -1,5 +1,4 @@
-use nom::error::convert_error;
-use num_bigint::BigInt;
+pub use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
 
@@ -46,8 +45,8 @@ pub fn def(x: &str, e: AST) -> AST {
     }
 }
 
-pub fn num(n: i32) -> AST {
-    AST::Number(n.into())
+pub fn num(n: BigInt) -> AST {
+    AST::Number(n)
 }
 
 pub fn var(x: &str) -> AST {
@@ -128,14 +127,4 @@ impl Env {
             next: self.0.clone(),
         })))
     }
-}
-
-pub fn r2(exp: &str) -> anyhow::Result<RetValue> {
-    use crate::eval::interp;
-    use crate::parse::parse_r2;
-    let ast = match parse_r2(&exp) {
-        Ok(ast) => ast,
-        Err(ve) => anyhow::bail!(convert_error(exp, ve)),
-    };
-    interp(&ast, &Env::new())
 }

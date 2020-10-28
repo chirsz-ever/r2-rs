@@ -8,9 +8,11 @@ mod parse;
 mod repl;
 mod utils;
 
+use crate::eval::*;
+use crate::parse::*;
+use crate::utils::*;
 use std::fs::File;
 use std::io::{self, prelude::*};
-use utils::r2;
 
 #[derive(Debug)]
 enum Status {
@@ -23,13 +25,16 @@ use Status::*;
 fn main() -> io::Result<()> {
     match deal_arg()? {
         Some(REPL) => repl::repl()?,
-        Some(EVAL(exp)) => match r2(&exp) {
-            Ok(ret) => {
-                println!("{}", ret);
+        Some(EVAL(src)) => match parse_program(&src) {
+            Ok(asts) => {
+                for ast in asts.into_iter() {
+                    match interp(&ast, &Env::new()) {
+                        Ok(ret) => println!("{}", ret),
+                        Err(e) => eprintln!("Error: \n{}", e),
+                    }
+                }
             }
-            Err(e) => {
-                println!("Error: \n{}", e);
-            }
+            Err(e) => eprintln!("Error: \n{}", e),
         },
         None => (),
     }
