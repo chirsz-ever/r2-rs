@@ -106,9 +106,21 @@ mod test {
         app(Identifier(idnet.into()), arg)
     }
 
+    fn def(x: &str, body: AST) -> AST {
+        lambda(x, vec![body])
+    }
+
+    pub fn bind(x: &str, e: AST, body: AST) -> AST {
+        AST::Bind {
+            x: x.into(),
+            e: Rc::new(e),
+            body: vec![body],
+        }
+    }
+
     fn eval_eq(ast: AST, exp: RetValue) {
         use RetValue::*;
-        let result = interp(&ast, &prelude_env()).unwrap();
+        let result = interp(&ast, &mut prelude_env()).unwrap();
         match (&result, &exp) {
             (Number(n1), Number(n2)) => assert_eq!(n1, n2),
             (Closure { .. }, Closure { .. }) => todo!(),

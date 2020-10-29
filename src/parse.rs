@@ -93,7 +93,7 @@ mod test {
 
     fn eval_eq(exp: &str, v: RetValue) {
         let ast = parse_expr(exp.trim()).unwrap();
-        let r = interp(&ast, &prelude_env()).unwrap();
+        let r = interp(&ast, &mut prelude_env()).unwrap();
         match (&r, &v) {
             (Number(n1), Number(n2)) => assert_eq!(n1, n2),
             (Closure { .. }, Closure { .. }) => todo!(),
