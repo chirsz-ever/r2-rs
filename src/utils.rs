@@ -1,4 +1,5 @@
 pub use num_bigint::BigInt;
+use num_traits::identities::Zero;
 use std::fmt;
 use std::rc::Rc;
 
@@ -7,7 +8,7 @@ pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:p}", &*self.0)
+        write!(f, "<built-in function {:p}>", &*self.0)
     }
 }
 
@@ -73,9 +74,8 @@ impl fmt::Display for RetValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RetValue::Number(n) => write!(f, "{}", n),
-            RetValue::Closure { .. } | RetValue::BuiltInFunc(_) => {
-                write!(f, "<function {:p}>", self)
-            }
+            RetValue::Closure { .. } => write!(f, "<procedure {:p}>", self),
+            RetValue::BuiltInFunc(fun) => write!(f, "{:?}", fun),
         }
     }
 }
@@ -111,4 +111,93 @@ impl Env {
             next: self.0.clone(),
         })))
     }
+}
+
+pub fn builtin_plus(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 + arg2)),
+        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
+        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
+        _ => anyhow::bail!("incorrect argument count"),
+    }
+}
+
+pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 - arg2)),
+        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
+        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
+        _ => anyhow::bail!("incorrect argument count"),
+    }
+}
+
+pub fn builtin_multiply(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 * arg2)),
+        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
+        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
+        _ => anyhow::bail!("incorrect argument count"),
+    }
+}
+
+pub fn builtin_divide(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg1), RetValue::Number(arg2)] => {
+            if arg2.is_zero() {
+                anyhow::bail!("0 is undefined to be divisor")
+            }
+            Ok(RetValue::Number(arg1 / arg2))
+        }
+        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
+        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
+        _ => anyhow::bail!("incorrect argument count"),
+    }
+}
+
+pub fn builtin_iszero(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg)] => {
+            if arg.is_zero() {
+                Ok(church_true())
+            } else {
+                Ok(church_false())
+            }
+        }
+        [arg] => anyhow::bail!("{} is not a number", arg),
+        _ => anyhow::bail!("incorrect argument count"),
+    }
+}
+
+pub fn prelude_env() -> Env {
+    Env::new()
+        .extend("+".into(), RetValue::BuiltInFunc(func(builtin_plus)))
+        .extend("-".into(), RetValue::BuiltInFunc(func(builtin_minus)))
+        .extend("*".into(), RetValue::BuiltInFunc(func(builtin_multiply)))
+        .extend("/".into(), RetValue::BuiltInFunc(func(builtin_divide)))
+        .extend(
+            "is_zero".into(),
+            RetValue::BuiltInFunc(func(builtin_iszero)),
+        )
+}
+
+thread_local! {
+    static CHURCH_TRUE: RetValue = RetValue::Closure {
+        arg: "x".into(),
+        expr: Rc::new(def("y", var("x"))),
+        env: Env::new(),
+    };
+
+    static CHURCH_FALSE: RetValue = RetValue::Closure {
+        arg: "x".into(),
+        expr: Rc::new(def("y", var("y"))),
+        env: Env::new(),
+    };
+}
+
+pub fn church_true() -> RetValue {
+    CHURCH_TRUE.with(|t| t.clone())
+}
+
+pub fn church_false() -> RetValue {
+    CHURCH_FALSE.with(|f| f.clone())
 }

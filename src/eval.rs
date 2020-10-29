@@ -46,28 +46,6 @@ pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
     }
 }
 
-thread_local! {
-    static CHURCH_TRUE: RetValue = RetValue::Closure {
-        arg: "x".into(),
-        expr: Rc::new(def("y", var("x"))),
-        env: Env::new(),
-    };
-
-    static CHURCH_FALSE: RetValue = RetValue::Closure {
-        arg: "x".into(),
-        expr: Rc::new(def("y", var("y"))),
-        env: Env::new(),
-    };
-}
-
-pub fn church_true() -> RetValue {
-    CHURCH_TRUE.with(|t| t.clone())
-}
-
-pub fn church_false() -> RetValue {
-    CHURCH_FALSE.with(|f| f.clone())
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
