@@ -30,6 +30,7 @@ fn main() -> io::Result<()> {
             Ok(asts) => {
                 for ast in asts.into_iter() {
                     match interp(&ast, &mut env) {
+                        Ok(RetValue::Unit) => {}
                         Ok(ret) => println!("{}", ret),
                         Err(e) => eprintln!("Error: \n{}", e),
                     }
