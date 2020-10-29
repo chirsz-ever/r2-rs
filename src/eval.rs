@@ -1,8 +1,7 @@
 use crate::utils::*;
 use anyhow::format_err;
 use std::rc::Rc;
-use RetValue::*;
-use AST::{Application, Bind, BuiltInFunc, BuiltInOp, Identifier, LambdaDef};
+use AST::*;
 
 pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
     match exp {
@@ -10,64 +9,55 @@ pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
             .lookup(&x)
             .ok_or_else(|| format_err!("undefined variable \"{}\"", x))?
             .clone()),
-        AST::Number(n) => Ok(Number(n.clone())),
-        LambdaDef { .. } => Ok(Lambda(Closure {
-            f: Rc::new(exp.clone()),
+        AST::Number(n) => Ok(RetValue::Number(n.clone())),
+        BuiltInFunc(func) => Ok(RetValue::BuiltInFunc(func.clone())),
+        LambdaDef { x, e } => Ok(RetValue::Closure {
+            arg: Rc::clone(x),
+            expr: Rc::clone(e),
             env: env.clone(),
-        })),
+        }),
         Bind { x, e1, e2 } => {
             let v1 = interp(e1, env)?;
             interp(e2, &env.extend(x.clone(), v1))
         }
-        Application { e1, e2 } => {
-            let v1 = interp(e1, env)?;
-            let v2 = interp(e2, env)?;
-            let v1info = format!("{:?}", v1);
-            if let Lambda(Closure { f, env: env_save }) = v1 {
-                if let LambdaDef { x, e } = &*f {
-                    return interp(&e, &env_save.extend(x.clone(), v2));
-                }
+        Application { func, args } => {
+            let v1 = interp(func, env)?;
+            let mut argvs = Vec::new();
+            for arg in args {
+                argvs.push(interp(arg, env)?);
             }
-            Err(format_err!("{} can't be function", v1info))
-        }
-        BuiltInOp { op, e1, e2 } => {
-            let v1 = interp(e1, env)?;
-            let v2 = interp(e2, env)?;
-            match (v1, v2) {
-                (Number(v1), Number(v2)) => Ok(Number(match *op {
-                    '+' => v1 + v2,
-                    '-' => v1 - v2,
-                    '*' => v1 * v2,
-                    '/' => v1 / v2,
-                    _ => return Err(format_err!("{:?} is not a valid binary op", op)),
-                })),
-                _ => Err(format_err!("wrong argument")),
-            }
-        }
-        BuiltInFunc { f, e } => {
-            if "is_zero" == &**f {
-                let v = interp(e, env)?;
-                match v {
-                    Number(ref n) if n == &0.into() => Ok(church_true()),
-                    _ => Ok(church_false()),
+            match v1 {
+                RetValue::Closure {
+                    ref arg,
+                    ref expr,
+                    env: ref env_save,
+                } => {
+                    if argvs.len() == 1 {
+                        let v2 = argvs.into_iter().next().unwrap();
+                        interp(&expr, &env_save.extend(arg.clone(), v2))
+                    } else {
+                        anyhow::bail!("incorrect number of arguments to {}", v1)
+                    }
                 }
-            } else {
-                Err(format_err!("undefined function: {}", f))
+                RetValue::BuiltInFunc(func) => func.0(&argvs),
+                _ => anyhow::bail!("{} is not a procedure", v1),
             }
         }
     }
 }
 
 thread_local! {
-    static CHURCH_TRUE: RetValue = Lambda(Closure {
-        f: Rc::new(def("x", def("y", var("x")))),
+    static CHURCH_TRUE: RetValue = RetValue::Closure {
+        arg: "x".into(),
+        expr: Rc::new(def("y", var("x"))),
         env: Env::new(),
-    });
+    };
 
-    static CHURCH_FALSE: RetValue = Lambda(Closure {
-        f: Rc::new(def("x", def("y", var("y")))),
+    static CHURCH_FALSE: RetValue = RetValue::Closure {
+        arg: "x".into(),
+        expr: Rc::new(def("y", var("y"))),
         env: Env::new(),
-    });
+    };
 }
 
 pub fn church_true() -> RetValue {

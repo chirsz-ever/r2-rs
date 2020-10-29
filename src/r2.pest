@@ -13,8 +13,6 @@ SList = { "(" ~ SyntaxStruct ~ ")" }
 SyntaxStruct = _{
     LambdaDef
     | Bind
-    | BuiltInFuncCall
-    | BuiltInOpCall
     | Application
 }
 
@@ -27,15 +25,7 @@ BindPair = _{
     | "[" ~ Identifier ~ SExpr ~ "]"
 }
 
-BuiltInFuncCall = { BuiltInFunc ~ SExpr }
-
-BuiltInOpCall = { BuiltInOp ~ SExpr ~ SExpr }
-
-BuiltInFunc = { "is_zero" }
-
-BuiltInOp = { "+" | "-" | "*" | "/" }
-
-Application = { SExpr ~ SExpr }
+Application = { SExpr+ }
 
 Literal = _{
     Number
@@ -50,8 +40,10 @@ Integer = @{
 }
 
 Identifier = @{
-    !Literal ~ (ASCII_ALPHANUMERIC | SCHEME_EXT)+
+    !Literal ~ !Keyword ~ (ASCII_ALPHANUMERIC | SCHEME_EXT)+
 }
+
+Keyword = { "lambda" | "let" }
 
 SCHEME_EXT = { 
     "!" | "$" | "%" | "&" |

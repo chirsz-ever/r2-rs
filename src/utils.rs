@@ -2,10 +2,20 @@ pub use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
+pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:p}", &*self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum AST {
     Identifier(Rc<str>),
     Number(BigInt),
+    BuiltInFunc(Function),
     LambdaDef {
         x: Rc<str>,
         e: Rc<AST>,
@@ -16,26 +26,9 @@ pub enum AST {
         e2: Rc<AST>,
     },
     Application {
-        e1: Rc<AST>,
-        e2: Rc<AST>,
+        func: Rc<AST>,
+        args: Vec<AST>,
     },
-    BuiltInFunc {
-        f: Rc<str>,
-        e: Rc<AST>,
-    },
-    BuiltInOp {
-        op: char,
-        e1: Rc<AST>,
-        e2: Rc<AST>,
-    },
-}
-
-pub fn op(op: char, e1: AST, e2: AST) -> AST {
-    AST::BuiltInOp {
-        op,
-        e1: Rc::new(e1),
-        e2: Rc::new(e2),
-    }
 }
 
 pub fn def(x: &str, e: AST) -> AST {
@@ -61,45 +54,36 @@ pub fn bind(x: &str, e1: AST, e2: AST) -> AST {
     }
 }
 
-pub fn app(e1: AST, e2: AST) -> AST {
-    AST::Application {
-        e1: Rc::new(e1),
-        e2: Rc::new(e2),
-    }
+pub fn func(f: impl Fn(&[RetValue]) -> anyhow::Result<RetValue> + 'static) -> Function {
+    Function(Rc::new(f) as _)
 }
 
-pub fn func(f: &str, e: AST) -> AST {
-    AST::BuiltInFunc {
-        f: f.into(),
-        e: Rc::new(e),
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum RetValue {
     Number(BigInt),
-    Lambda(Closure),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Closure {
-    pub f: Rc<AST>,
-    pub env: Env,
+    Closure {
+        arg: Rc<str>,
+        expr: Rc<AST>,
+        env: Env,
+    },
+    BuiltInFunc(Function),
 }
 
 impl fmt::Display for RetValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RetValue::Number(n) => write!(f, "{}", n),
-            RetValue::Lambda(c) => write!(f, "<function {:p}>", c),
+            RetValue::Closure { .. } | RetValue::BuiltInFunc(_) => {
+                write!(f, "<function {:p}>", self)
+            }
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Env(Option<Rc<EnvNode>>);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct EnvNode {
     kv: (Rc<str>, RetValue),
     next: Option<Rc<EnvNode>>,

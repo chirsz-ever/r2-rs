@@ -4,6 +4,8 @@ use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
+use std::rc::Rc;
+
 #[derive(Parser)]
 #[grammar = "r2.pest"]
 struct R2Parser;
@@ -22,7 +24,7 @@ pub fn parse_program(src: &str) -> anyhow::Result<Vec<AST>> {
 pub fn parse_expr(src: &str) -> anyhow::Result<AST> {
     let sexpr = R2Parser::parse(Rule::SingleSExpr, &src)?
         .next()
-        .unwrap()
+        .unwrap() // Here is SingleSExpr
         .into_inner()
         .next()
         .unwrap();
@@ -35,9 +37,9 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
         Rule::Integer => num(inner.as_str().parse()?),
         Rule::Identifier => var(inner.as_str()),
         Rule::SList => {
-            let inner = inner.into_inner().next().unwrap();
-            let r = inner.as_rule();
-            let mut inner = inner.into_inner();
+            let syntax_struct = inner.into_inner().next().unwrap();
+            let r = syntax_struct.as_rule();
+            let mut inner = syntax_struct.into_inner();
             match r {
                 Rule::LambdaDef => {
                     let x = inner.next().unwrap().as_str();
@@ -50,21 +52,16 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
                     let e2 = sexpr_to_ast(inner.next().unwrap())?;
                     bind(x, e1, e2)
                 }
-                Rule::BuiltInFuncCall => {
-                    let f = inner.next().unwrap().as_str();
-                    let e = sexpr_to_ast(inner.next().unwrap())?;
-                    func(f, e)
-                }
-                Rule::BuiltInOpCall => {
-                    let opc = inner.next().unwrap().as_str().chars().next().unwrap();
-                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
-                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
-                    op(opc, e1, e2)
-                }
                 Rule::Application => {
-                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
-                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
-                    app(e1, e2)
+                    let func = sexpr_to_ast(inner.next().unwrap())?;
+                    let mut args = Vec::new();
+                    for sexpr in inner {
+                        args.push(sexpr_to_ast(sexpr)?);
+                    }
+                    AST::Application {
+                        func: Rc::new(func),
+                        args,
+                    }
                 }
                 _ => unreachable!(),
             }
