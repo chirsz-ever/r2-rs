@@ -36,10 +36,8 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
     let ast = match inner.as_rule() {
         Rule::Integer => num(inner.as_str().parse()?),
         Rule::Identifier => var(inner.as_str()),
-        Rule::SList => {
-            let syntax_struct = inner.into_inner().next().unwrap();
-            let r = syntax_struct.as_rule();
-            let mut inner = syntax_struct.into_inner();
+        r => {
+            let mut inner = inner.into_inner();
             match r {
                 Rule::LambdaDef => {
                     let x = inner.next().unwrap().as_str();
@@ -66,7 +64,6 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
                 _ => unreachable!(),
             }
         }
-        _ => unreachable!(),
     };
     Ok(ast)
 }

@@ -8,7 +8,7 @@ SExpr = {
     | SList
 }
 
-SList = { "(" ~ SyntaxStruct ~ ")" }
+SList = _{ "(" ~ SyntaxStruct ~ ")" }
 
 SyntaxStruct = _{
     LambdaDef
