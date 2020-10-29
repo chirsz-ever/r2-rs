@@ -3,7 +3,7 @@ use anyhow::format_err;
 use std::rc::Rc;
 use AST::*;
 
-pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
+pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
     match exp {
         Identifier(x) => Ok(env
             .lookup(&x)
@@ -11,30 +11,41 @@ pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
             .clone()),
         AST::Number(n) => Ok(RetValue::Number(n.clone())),
         BuiltInFunc(func) => Ok(RetValue::BuiltInFunc(func.clone())),
-        LambdaDef { x, e } => Ok(RetValue::Closure {
+        LambdaDef { x, body } => Ok(RetValue::Closure {
             arg: Rc::clone(x),
-            expr: Rc::clone(e),
+            body: Rc::clone(body),
             env: env.clone(),
         }),
-        Bind { x, e1, e2 } => {
-            let v1 = interp(e1, env)?;
-            interp(e2, &env.extend(x.clone(), v1))
+        Bind { x, e, body } => {
+            let env_init = env.clone();
+            let v1 = interp(e, env)?;
+            *env = env_init;
+            interp_arr(&body, &mut env.extend(x.clone(), v1))
         }
+        Definition { x, e } => {
+            let env_init = env.clone();
+            let v1 = interp(e, env)?;
+            *env = env_init.extend(x.clone(), v1);
+            Ok(RetValue::Unit)
+        }
+        Block(es) => interp_arr(&es, env),
         Application { func, args } => {
+            let env_init = env.clone();
             let v1 = interp(func, env)?;
             let mut argvs = Vec::new();
             for arg in args {
                 argvs.push(interp(arg, env)?);
             }
+            *env = env_init;
             match v1 {
                 RetValue::Closure {
                     ref arg,
-                    ref expr,
+                    ref body,
                     env: ref env_save,
                 } => {
                     if argvs.len() == 1 {
                         let v2 = argvs.into_iter().next().unwrap();
-                        interp(&expr, &env_save.extend(arg.clone(), v2))
+                        interp_arr(&body, &mut env_save.extend(arg.clone(), v2))
                     } else {
                         anyhow::bail!("incorrect number of arguments to {}", v1)
                     }
@@ -42,6 +53,21 @@ pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
                 RetValue::BuiltInFunc(func) => func.0(&argvs),
                 _ => anyhow::bail!("{} is not a procedure", v1),
             }
+        }
+        Unit => Ok(RetValue::Unit),
+    }
+}
+
+// None => Unit
+// else => the last expression
+fn interp_arr(es: &[AST], env: &mut Env) -> anyhow::Result<RetValue> {
+    match es {
+        [] => Ok(RetValue::Unit),
+        [lead @ .., last] => {
+            for e in lead {
+                interp(e, env)?;
+            }
+            interp(last, env)
         }
     }
 }

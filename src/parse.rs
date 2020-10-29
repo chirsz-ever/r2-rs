@@ -1,6 +1,6 @@
 use crate::utils::*;
 
-use pest::iterators::Pair;
+use pest::iterators::{Pair, Pairs};
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -41,21 +41,30 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
             match r {
                 Rule::LambdaDef => {
                     let x = inner.next().unwrap().as_str();
-                    let e = sexpr_to_ast(inner.next().unwrap())?;
-                    def(x, e)
+                    let body = collect_sexpr(inner)?;
+                    lambda(x, body)
                 }
                 Rule::Bind => {
                     let x = inner.next().unwrap().as_str();
-                    let e1 = sexpr_to_ast(inner.next().unwrap())?;
-                    let e2 = sexpr_to_ast(inner.next().unwrap())?;
-                    bind(x, e1, e2)
+                    let e = sexpr_to_ast(inner.next().unwrap())?;
+                    let body = collect_sexpr(inner)?;
+                    bind(x, e, body)
+                }
+                Rule::Definition => {
+                    let x = inner.next().unwrap().as_str();
+                    let e = sexpr_to_ast(inner.next().unwrap())?;
+                    AST::Definition {
+                        x: x.into(),
+                        e: Rc::new(e),
+                    }
+                }
+                Rule::Block => {
+                    let es = collect_sexpr(inner)?;
+                    AST::Block(es)
                 }
                 Rule::Application => {
                     let func = sexpr_to_ast(inner.next().unwrap())?;
-                    let mut args = Vec::new();
-                    for sexpr in inner {
-                        args.push(sexpr_to_ast(sexpr)?);
-                    }
+                    let args = collect_sexpr(inner)?;
                     AST::Application {
                         func: Rc::new(func),
                         args,
@@ -66,6 +75,14 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
         }
     };
     Ok(ast)
+}
+
+fn collect_sexpr(ps: Pairs<Rule>) -> anyhow::Result<Vec<AST>> {
+    let mut es = Vec::new();
+    for sexpr in ps {
+        es.push(sexpr_to_ast(sexpr)?);
+    }
+    Ok(es)
 }
 
 #[cfg(test)]

@@ -23,13 +23,13 @@ enum Status {
 use Status::*;
 
 fn main() -> io::Result<()> {
-    let env = prelude_env();
+    let mut env = prelude_env();
     match deal_arg()? {
         Some(REPL) => repl::repl()?,
         Some(EVAL(src)) => match parse_program(&src) {
             Ok(asts) => {
                 for ast in asts.into_iter() {
-                    match interp(&ast, &env) {
+                    match interp(&ast, &mut env) {
                         Ok(ret) => println!("{}", ret),
                         Err(e) => eprintln!("Error: \n{}", e),
                     }

@@ -13,17 +13,24 @@ SList = _{ "(" ~ SyntaxStruct ~ ")" }
 SyntaxStruct = _{
     LambdaDef
     | Bind
+    | Definition
+    | Block
     | Application
 }
 
-LambdaDef = { "lambda" ~ "(" ~ Identifier ~ ")" ~ SExpr }
+LambdaDef = { "lambda" ~ "(" ~ Identifier ~ ")" ~ SExpr+ }
 
-Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ SExpr }
+Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ SExpr+ }
 
 BindPair = _{
     "(" ~ Identifier ~ SExpr ~ ")"
     | "[" ~ Identifier ~ SExpr ~ "]"
 }
+
+// This return Unit value
+Definition = { "define" ~ Identifier ~ SExpr }
+
+Block = { "begin" ~ SExpr+ }
 
 Application = { SExpr+ }
 

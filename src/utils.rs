@@ -19,23 +19,29 @@ pub enum AST {
     BuiltInFunc(Function),
     LambdaDef {
         x: Rc<str>,
-        e: Rc<AST>,
+        body: Rc<Vec<AST>>,
     },
     Bind {
         x: Rc<str>,
-        e1: Rc<AST>,
-        e2: Rc<AST>,
+        e: Rc<AST>,
+        body: Vec<AST>,
     },
+    Definition {
+        x: Rc<str>,
+        e: Rc<AST>,
+    },
+    Block(Vec<AST>),
     Application {
         func: Rc<AST>,
         args: Vec<AST>,
     },
+    Unit,
 }
 
-pub fn def(x: &str, e: AST) -> AST {
+pub fn lambda(x: &str, body: Vec<AST>) -> AST {
     AST::LambdaDef {
         x: x.into(),
-        e: Rc::new(e),
+        body: Rc::new(body),
     }
 }
 
@@ -47,11 +53,11 @@ pub fn var(x: &str) -> AST {
     AST::Identifier(x.into())
 }
 
-pub fn bind(x: &str, e1: AST, e2: AST) -> AST {
+pub fn bind(x: &str, e: AST, body: Vec<AST>) -> AST {
     AST::Bind {
         x: x.into(),
-        e1: Rc::new(e1),
-        e2: Rc::new(e2),
+        e: Rc::new(e),
+        body,
     }
 }
 
@@ -64,10 +70,11 @@ pub enum RetValue {
     Number(BigInt),
     Closure {
         arg: Rc<str>,
-        expr: Rc<AST>,
+        body: Rc<Vec<AST>>,
         env: Env,
     },
     BuiltInFunc(Function),
+    Unit,
 }
 
 impl fmt::Display for RetValue {
@@ -76,6 +83,7 @@ impl fmt::Display for RetValue {
             RetValue::Number(n) => write!(f, "{}", n),
             RetValue::Closure { .. } => write!(f, "<procedure {:p}>", self),
             RetValue::BuiltInFunc(fun) => write!(f, "{:?}", fun),
+            RetValue::Unit => write!(f, ""),
         }
     }
 }
@@ -183,13 +191,13 @@ pub fn prelude_env() -> Env {
 thread_local! {
     static CHURCH_TRUE: RetValue = RetValue::Closure {
         arg: "x".into(),
-        expr: Rc::new(def("y", var("x"))),
+        body: Rc::new(vec![lambda("y", vec![var("x")])]),
         env: Env::new(),
     };
 
     static CHURCH_FALSE: RetValue = RetValue::Closure {
         arg: "x".into(),
-        expr: Rc::new(def("y", var("y"))),
+        body: Rc::new(vec![lambda("y", vec![var("y")])]),
         env: Env::new(),
     };
 }

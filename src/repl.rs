@@ -10,7 +10,7 @@ pub fn repl() -> io::Result<()> {
     let conf = Config::builder().auto_add_history(true).build();
     let mut rl = Editor::with_config(conf);
     rl.set_helper(Some(MyHelper::default()));
-    let env = prelude_env();
+    let mut env = prelude_env();
 
     for readline in rl.iter("> ") {
         match readline {
@@ -19,7 +19,8 @@ pub fn repl() -> io::Result<()> {
                 if line.is_empty() {
                     continue;
                 }
-                match parse_expr(&line).and_then(|ast| interp(&ast, &env)) {
+                match parse_expr(&line).and_then(|ast| interp(&ast, &mut env)) {
+                    Ok(RetValue::Unit) => {}
                     Ok(ret) => {
                         println!("{}", ret);
                     }
