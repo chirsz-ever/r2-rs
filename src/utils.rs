@@ -163,7 +163,7 @@ pub fn builtin_iszero(args: &[RetValue]) -> anyhow::Result<RetValue> {
                 Ok(church_false())
             }
         }
-        [arg] => anyhow::bail!("{} is not a number", arg),
+        [_] => Ok(church_false()),
         _ => anyhow::bail!("incorrect argument count"),
     }
 }

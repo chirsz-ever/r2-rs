@@ -79,8 +79,13 @@ mod test {
 
     fn eval_eq(exp: &str, v: RetValue) {
         let ast = parse_expr(exp.trim()).unwrap();
-        let r = interp(&ast, &Env::new()).unwrap();
-        assert_eq!(r, v);
+        let r = interp(&ast, &prelude_env()).unwrap();
+        match (&r, &v) {
+            (Number(n1), Number(n2)) => assert_eq!(n1, n2),
+            (Closure { .. }, Closure { .. }) => todo!(),
+            (BuiltInFunc { .. }, BuiltInFunc { .. }) => todo!(),
+            _ => panic!("{} is not equal to {}", r, v),
+        }
     }
 
     #[test]
@@ -131,21 +136,19 @@ mod test {
         );
     }
 
-    use crate::eval::{church_false, church_true};
-
     #[test]
     fn is_zero_1() {
-        eval_eq("(is_zero 0)", church_true())
+        eval_eq("(((is_zero 0) 0) 1)", Number(0.into()))
     }
 
     #[test]
     fn is_zero_2() {
-        eval_eq("(is_zero 2)", church_false())
+        eval_eq("(((is_zero 2) 0) 1)", Number(1.into()))
     }
 
     #[test]
     fn is_zero_3() {
-        eval_eq("(is_zero (lambda (x) x))", church_false())
+        eval_eq("(((is_zero (lambda (x) x)) 0) 1)", Number(1.into()))
     }
 
     #[test]

@@ -49,29 +49,62 @@ pub fn interp(exp: &AST, env: &Env) -> anyhow::Result<RetValue> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use RetValue::Number;
 
     fn num(n: i32) -> AST {
         AST::Number(n.into())
     }
 
+    fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
+        let bf = match opc {
+            "+" => builtin_plus,
+            "-" => builtin_minus,
+            "*" => builtin_multiply,
+            "/" => builtin_divide,
+            _ => unreachable!(),
+        };
+        Application {
+            func: Rc::new(BuiltInFunc(func(bf))),
+            args: vec![arg1, arg2],
+        }
+    }
+
+    fn app(func: AST, arg: AST) -> AST {
+        Application {
+            func: Rc::new(func),
+            args: vec![arg],
+        }
+    }
+
+    fn app_id(idnet: &str, arg: AST) -> AST {
+        app(Identifier(idnet.into()), arg)
+    }
+
     fn eval_eq(ast: AST, exp: RetValue) {
-        assert_eq!(interp(&ast, &Env::new()).unwrap(), exp);
+        use RetValue::*;
+        let result = interp(&ast, &prelude_env()).unwrap();
+        match (&result, &exp) {
+            (Number(n1), Number(n2)) => assert_eq!(n1, n2),
+            (Closure { .. }, Closure { .. }) => todo!(),
+            (BuiltInFunc { .. }, BuiltInFunc { .. }) => todo!(),
+            _ => panic!("{} is not equal to {}", result, exp),
+        }
     }
 
     #[test]
     fn yin_1() {
-        eval_eq(op('+', num(1), num(2)), Number(3.into()));
+        eval_eq(op("+", num(1), num(2)), Number(3.into()));
     }
 
     #[test]
     fn yin_2() {
-        eval_eq(op('*', num(2), num(3)), Number(6.into()));
+        eval_eq(op("*", num(2), num(3)), Number(6.into()));
     }
 
     #[test]
     fn yin_3() {
         eval_eq(
-            op('*', op('+', num(1), num(2)), op('+', num(3), num(4))),
+            op("*", op("+", num(1), num(2)), op("+", num(3), num(4))),
             Number(21.into()),
         );
     }
@@ -79,7 +112,7 @@ mod test {
     #[test]
     fn yin_4() {
         eval_eq(
-            app(def("x", op('*', num(2), var("x"))), num(3)),
+            app(def("x", op("*", num(2), var("x"))), num(3)),
             Number(6.into()),
         );
     }
@@ -92,7 +125,7 @@ mod test {
                 num(2),
                 bind(
                     "f",
-                    def("y", op('*', var("x"), var("y"))),
+                    def("y", op("*", var("x"), var("y"))),
                     app(var("f"), num(3)),
                 ),
             ),
@@ -108,7 +141,7 @@ mod test {
                 num(2),
                 bind(
                     "f",
-                    def("y", op('*', var("x"), var("y"))),
+                    def("y", op("*", var("x"), var("y"))),
                     bind("x", num(4), app(var("f"), num(3))),
                 ),
             ),
@@ -119,26 +152,35 @@ mod test {
     #[test]
     fn is_zero_1() {
         // (is_zero 0)
-        eval_eq(func("is_zero", num(0)), church_true())
+        eval_eq(
+            app(app(app_id("is_zero", num(0)), num(0)), num(1)),
+            Number(0.into()),
+        )
     }
 
     #[test]
     fn is_zero_2() {
         // (is_zero 2)
-        eval_eq(func("is_zero", num(2)), church_false())
+        eval_eq(
+            app(app(app_id("is_zero", num(2)), num(0)), num(1)),
+            Number(1.into()),
+        )
     }
 
     #[test]
     fn is_zero_3() {
         // (is_zero (lambda (x) x))
-        eval_eq(func("is_zero", def("x", var("x"))), church_false())
+        eval_eq(
+            app(app(app_id("is_zero", def("x", var("x"))), num(0)), num(1)),
+            Number(1.into()),
+        )
     }
 
     #[test]
     fn church_true_test() {
         // (((is_zero 0) 1) 2)
         eval_eq(
-            app(app(func("is_zero", num(0)), num(1)), num(2)),
+            app(app(app_id("is_zero", num(0)), num(1)), num(2)),
             Number(1.into()),
         )
     }
@@ -147,7 +189,7 @@ mod test {
     fn church_false_test() {
         // (((is_zero 1) 1) 2)
         eval_eq(
-            app(app(func("is_zero", num(1)), num(1)), num(2)),
+            app(app(app_id("is_zero", num(1)), num(1)), num(2)),
             Number(2.into()),
         )
     }
