@@ -1,6 +1,6 @@
 Program = { SOI ~ SExpr* ~ EOI }
 
-SingleSExpr = { SOI ~ SExpr ~ EOI }
+SingleInput = { SOI ~ SExpr? ~ EOI }
 
 SExpr = {
     Literal

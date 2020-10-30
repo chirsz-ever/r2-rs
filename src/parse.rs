@@ -22,13 +22,17 @@ pub fn parse_program(src: &str) -> anyhow::Result<Vec<AST>> {
 }
 
 pub fn parse_expr(src: &str) -> anyhow::Result<AST> {
-    let sexpr = R2Parser::parse(Rule::SingleSExpr, &src)?
+    let input_inner = R2Parser::parse(Rule::SingleInput, &src)?
         .next()
-        .unwrap() // Here is SingleSExpr
+        .unwrap() // Here is SingleInput
         .into_inner()
         .next()
         .unwrap();
-    sexpr_to_ast(sexpr)
+    if let Rule::SExpr = input_inner.as_rule() {
+        sexpr_to_ast(input_inner)
+    } else {
+        Ok(AST::Unit)
+    }
 }
 
 fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
