@@ -22,5 +22,5 @@ R2 interpreter implemented with Rust
 - [x] REPL 中增加大环境和 define 语法，使得前面行中定义的变量在后面可用
 - [x] 使用 `Rc` 链表作为 `Env` 类型
 - [x] 使用某 `BigInt` 作为整型
-- [ ] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
+- [x] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
 - [ ] 增加原生 `boolean` 类型与 `if` 语法

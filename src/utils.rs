@@ -122,43 +122,86 @@ impl Env {
 }
 
 pub fn builtin_plus(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    match args {
-        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 + arg2)),
-        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
-        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
-        _ => anyhow::bail!("incorrect argument count"),
+    for arg in args {
+        if let RetValue::Number(_) = arg {
+        } else {
+            anyhow::bail!("{} is not a number", arg)
+        }
     }
-}
-
-pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    match args {
-        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 - arg2)),
-        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
-        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
-        _ => anyhow::bail!("incorrect argument count"),
+    let mut sum = BigInt::from(0);
+    for arg in args {
+        if let RetValue::Number(n) = arg {
+            sum += n;
+        }
     }
+    Ok(RetValue::Number(sum))
 }
 
 pub fn builtin_multiply(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    for arg in args {
+        if let RetValue::Number(_) = arg {
+        } else {
+            anyhow::bail!("{} is not a number", arg)
+        }
+    }
+    let mut prod = BigInt::from(1);
+    for arg in args {
+        if let RetValue::Number(n) = arg {
+            prod *= n;
+            if prod.is_zero() {
+                return Ok(RetValue::Number(prod));
+            }
+        }
+    }
+    Ok(RetValue::Number(prod))
+}
+
+pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
+    for arg in args {
+        if let RetValue::Number(_) = arg {
+        } else {
+            anyhow::bail!("{} is not a number", arg)
+        }
+    }
     match args {
-        [RetValue::Number(arg1), RetValue::Number(arg2)] => Ok(RetValue::Number(arg1 * arg2)),
-        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
-        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
-        _ => anyhow::bail!("incorrect argument count"),
+        [] => anyhow::bail!("incorrect argument count"),
+        [RetValue::Number(x)] => Ok(RetValue::Number(-x)),
+        [RetValue::Number(x), subs @ ..] => {
+            let mut ret = x.clone();
+            for sub in subs {
+                if let RetValue::Number(n) = sub {
+                    ret -= n;
+                }
+            }
+            Ok(RetValue::Number(ret))
+        }
+        _ => unreachable!(),
     }
 }
 
 pub fn builtin_divide(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    match args {
-        [RetValue::Number(arg1), RetValue::Number(arg2)] => {
-            if arg2.is_zero() {
-                anyhow::bail!("0 is undefined to be divisor")
-            }
-            Ok(RetValue::Number(arg1 / arg2))
+    for arg in args {
+        if let RetValue::Number(_) = arg {
+        } else {
+            anyhow::bail!("{} is not a number", arg)
         }
-        [RetValue::Number(_), arg2] => anyhow::bail!("{} is not a number", arg2),
-        [arg1, _] => anyhow::bail!("{} is not a number", arg1),
-        _ => anyhow::bail!("incorrect argument count"),
+    }
+    match args {
+        [] => anyhow::bail!("incorrect argument count"),
+        [RetValue::Number(x)] => Ok(RetValue::Number(1 / x)),
+        [RetValue::Number(x), divs @ ..] => {
+            let mut ret = x.clone();
+            for div in divs {
+                if let RetValue::Number(n) = div {
+                    if n.is_zero() {
+                        anyhow::bail!("0 is undefined to be divisor");
+                    }
+                    ret /= n;
+                }
+            }
+            Ok(RetValue::Number(ret))
+        }
+        _ => unreachable!(),
     }
 }
 
