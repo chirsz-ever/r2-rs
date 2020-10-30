@@ -27,3 +27,4 @@ examples 目录下提供了一些示例源代码文件：
 - [x] 使用某 `BigInt` 作为整型
 - [x] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
 - [ ] 增加原生 `boolean` 类型与 `if` 语法
+- [ ] 使用 structopt
