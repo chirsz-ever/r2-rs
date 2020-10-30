@@ -12,7 +12,10 @@ R2 interpreter implemented with Rust
 
 本实现相对于原始版本增加了一个 `is_zero` 内置函数，当参数为 0 时结果是 `(lambda (x) (lambda (y) x))`，参数不为 0 时的结果是 `(lambda (x) (lambda (y) y))`，分别是无类型 lambda 演算中 `true` 和 `false` 的 Church 定义；增加了 `define` 和 `begin` 语法。
 
-根目录下提供了两个示例源代码文件 `yin.r2` 和 `yc.r2`。其中 `yin.r2` 的计算结果为 6，说明 R2 语言采用的是词法作用域；`yc.r2` 中则利用 Y Combinator 定义出递归的阶乘函数并计算了 `100!` 的值。
+examples 目录下提供了一些示例源代码文件：
+- `yin.r2` 的计算结果为 6，说明 R2 语言采用的是词法作用域；
+- `yc.r2` 中利用 Y Combinator 定义出递归的阶乘函数并计算了 `100!` 的值。
+- `yc_new.r2` 意义与 `yc.r2` 相同，但使用 `define` 语法。
 
 ## TODO
 
