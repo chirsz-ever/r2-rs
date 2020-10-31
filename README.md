@@ -26,7 +26,7 @@ examples 目录下提供了一些示例源代码文件：
 - [x] 使用 `Rc` 链表作为 `Env` 类型
 - [x] 使用某 `BigInt` 作为整型
 - [x] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
-- [ ] 整合 `RetValue` 到 AST 中
+- [x] 整合 `RetValue` 到 AST 中
 - [ ] 限制 deine 语法的出现范围
 - [ ] 增加原生 `boolean` 类型与 `if` 语法
 - [ ] 增加 `number?`，`boolean?`，`zero?` 等函数

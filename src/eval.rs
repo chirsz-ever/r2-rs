@@ -5,12 +5,11 @@ use AST::*;
 
 pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
     match exp {
+        Value(val) => Ok(val.clone()),
         Identifier(x) => Ok(env
             .lookup(&x)
             .ok_or_else(|| format_err!("undefined variable \"{}\"", x))?
             .clone()),
-        AST::Number(n) => Ok(RetValue::Number(n.clone())),
-        BuiltInFunc(func) => Ok(RetValue::Procedure(func.clone())),
         LambdaDef { x, body } => Ok(RetValue::Procedure(func_from_ast(
             Rc::clone(&x),
             Rc::clone(&body),
@@ -42,7 +41,6 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
                 _ => anyhow::bail!("{} is not a procedure", v1),
             }
         }
-        Unit => Ok(RetValue::Unit),
     }
 }
 
@@ -72,15 +70,22 @@ pub fn func_from_ast(x: Rc<str>, body: Rc<Vec<AST>>, env: Env) -> Function {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
-    use RetValue::Number;
+    use RetValue::*;
 
-    fn num(n: i32) -> AST {
-        AST::Number(n.into())
+    #[inline]
+    pub fn num(n: i32) -> AST {
+        Value(RetValue::num(n.into()))
     }
 
-    fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
+    #[inline]
+    pub fn rvnum(n: i32) -> RetValue {
+        RetValue::num(n.into())
+    }
+
+    #[inline]
+    pub fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
         let bf = match opc {
             "+" => builtin_plus,
             "-" => builtin_minus,
@@ -89,26 +94,30 @@ mod test {
             _ => unreachable!(),
         };
         Application {
-            func: Rc::new(BuiltInFunc(Function::new(bf))),
+            func: Rc::new(Value(Procedure(Function::new(bf)))),
             args: vec![arg1, arg2],
         }
     }
 
-    fn app(func: AST, arg: AST) -> AST {
+    #[inline]
+    pub fn app(func: AST, arg: AST) -> AST {
         Application {
             func: Rc::new(func),
             args: vec![arg],
         }
     }
 
-    fn app_id(idnet: &str, arg: AST) -> AST {
+    #[inline]
+    pub fn app_id(idnet: &str, arg: AST) -> AST {
         app(Identifier(idnet.into()), arg)
     }
 
-    fn def(x: &str, body: AST) -> AST {
+    #[inline]
+    pub fn def(x: &str, body: AST) -> AST {
         lambda(x, vec![body])
     }
 
+    #[inline]
     pub fn bind(x: &str, e: AST, body: AST) -> AST {
         AST::Bind {
             x: x.into(),
@@ -117,7 +126,8 @@ mod test {
         }
     }
 
-    fn eval_eq(ast: AST, exp: RetValue) {
+    #[inline]
+    pub fn eval_eq(ast: AST, exp: RetValue) {
         use RetValue::*;
         let result = interp(&ast, &mut prelude_env()).unwrap();
         match (&result, &exp) {
@@ -129,28 +139,25 @@ mod test {
 
     #[test]
     fn yin_1() {
-        eval_eq(op("+", num(1), num(2)), Number(3.into()));
+        eval_eq(op("+", num(1), num(2)), rvnum(3));
     }
 
     #[test]
     fn yin_2() {
-        eval_eq(op("*", num(2), num(3)), Number(6.into()));
+        eval_eq(op("*", num(2), num(3)), rvnum(6));
     }
 
     #[test]
     fn yin_3() {
         eval_eq(
             op("*", op("+", num(1), num(2)), op("+", num(3), num(4))),
-            Number(21.into()),
+            rvnum(21),
         );
     }
 
     #[test]
     fn yin_4() {
-        eval_eq(
-            app(def("x", op("*", num(2), var("x"))), num(3)),
-            Number(6.into()),
-        );
+        eval_eq(app(def("x", op("*", num(2), var("x"))), num(3)), rvnum(6));
     }
 
     #[test]
@@ -165,7 +172,7 @@ mod test {
                     app(var("f"), num(3)),
                 ),
             ),
-            Number(6.into()),
+            rvnum(6),
         )
     }
 
@@ -181,7 +188,7 @@ mod test {
                     bind("x", num(4), app(var("f"), num(3))),
                 ),
             ),
-            Number(6.into()),
+            rvnum(6),
         )
     }
 
@@ -190,7 +197,7 @@ mod test {
         // (is_zero 0)
         eval_eq(
             app(app(app_id("is_zero", num(0)), num(0)), num(1)),
-            Number(0.into()),
+            rvnum(0),
         )
     }
 
@@ -199,7 +206,7 @@ mod test {
         // (is_zero 2)
         eval_eq(
             app(app(app_id("is_zero", num(2)), num(0)), num(1)),
-            Number(1.into()),
+            rvnum(1),
         )
     }
 
@@ -208,7 +215,7 @@ mod test {
         // (is_zero (lambda (x) x))
         eval_eq(
             app(app(app_id("is_zero", def("x", var("x"))), num(0)), num(1)),
-            Number(1.into()),
+            rvnum(1),
         )
     }
 
@@ -217,7 +224,7 @@ mod test {
         // (((is_zero 0) 1) 2)
         eval_eq(
             app(app(app_id("is_zero", num(0)), num(1)), num(2)),
-            Number(1.into()),
+            rvnum(1),
         )
     }
 
@@ -226,7 +233,7 @@ mod test {
         // (((is_zero 1) 1) 2)
         eval_eq(
             app(app(app_id("is_zero", num(1)), num(1)), num(2)),
-            Number(2.into()),
+            rvnum(2),
         )
     }
 }

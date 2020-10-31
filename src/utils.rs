@@ -5,9 +5,8 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum AST {
+    Value(RetValue),
     Identifier(Rc<str>),
-    Number(BigInt),
-    BuiltInFunc(Function),
     LambdaDef {
         x: Rc<str>,
         body: Rc<Vec<AST>>,
@@ -26,7 +25,6 @@ pub enum AST {
         func: Rc<AST>,
         args: Vec<AST>,
     },
-    Unit,
 }
 
 pub fn lambda(x: &str, body: Vec<AST>) -> AST {
@@ -34,10 +32,6 @@ pub fn lambda(x: &str, body: Vec<AST>) -> AST {
         x: x.into(),
         body: Rc::new(body),
     }
-}
-
-pub fn num(n: BigInt) -> AST {
-    AST::Number(n)
 }
 
 pub fn var(x: &str) -> AST {
@@ -62,10 +56,12 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
+    #[inline]
     pub fn new(f: impl Fn(&[RetValue]) -> anyhow::Result<RetValue> + 'static) -> Self {
         Function(Rc::new(f) as _)
     }
 
+    #[inline]
     pub fn call(&self, args: &[RetValue]) -> anyhow::Result<RetValue> {
         self.0(args)
     }
@@ -74,9 +70,16 @@ impl Function {
 // The "final" value
 #[derive(Debug, Clone)]
 pub enum RetValue {
-    Number(BigInt),
+    Number(Rc<BigInt>),
     Procedure(Function),
     Unit,
+}
+
+impl RetValue {
+    #[inline]
+    pub fn num(n: BigInt) -> Self {
+        RetValue::Number(Rc::new(n))
+    }
 }
 
 impl fmt::Display for RetValue {
@@ -132,10 +135,10 @@ pub fn builtin_plus(args: &[RetValue]) -> anyhow::Result<RetValue> {
     let mut sum = BigInt::from(0);
     for arg in args {
         if let RetValue::Number(n) = arg {
-            sum += n;
+            sum += &**n;
         }
     }
-    Ok(RetValue::Number(sum))
+    Ok(RetValue::num(sum))
 }
 
 pub fn builtin_multiply(args: &[RetValue]) -> anyhow::Result<RetValue> {
@@ -148,13 +151,13 @@ pub fn builtin_multiply(args: &[RetValue]) -> anyhow::Result<RetValue> {
     let mut prod = BigInt::from(1);
     for arg in args {
         if let RetValue::Number(n) = arg {
-            prod *= n;
+            prod *= &**n;
             if prod.is_zero() {
-                return Ok(RetValue::Number(prod));
+                return Ok(RetValue::num(prod));
             }
         }
     }
-    Ok(RetValue::Number(prod))
+    Ok(RetValue::num(prod))
 }
 
 pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
@@ -166,15 +169,15 @@ pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
     }
     match args {
         [] => anyhow::bail!("incorrect argument count"),
-        [RetValue::Number(x)] => Ok(RetValue::Number(-x)),
+        [RetValue::Number(x)] => Ok(RetValue::num(-&**x)),
         [RetValue::Number(x), subs @ ..] => {
-            let mut ret = x.clone();
+            let mut ret = BigInt::clone(&x);
             for sub in subs {
                 if let RetValue::Number(n) = sub {
-                    ret -= n;
+                    ret -= &**n;
                 }
             }
-            Ok(RetValue::Number(ret))
+            Ok(RetValue::num(ret))
         }
         _ => unreachable!(),
     }
@@ -189,18 +192,18 @@ pub fn builtin_divide(args: &[RetValue]) -> anyhow::Result<RetValue> {
     }
     match args {
         [] => anyhow::bail!("incorrect argument count"),
-        [RetValue::Number(x)] => Ok(RetValue::Number(1 / x)),
+        [RetValue::Number(x)] => Ok(RetValue::num(1 / &**x)),
         [RetValue::Number(x), divs @ ..] => {
-            let mut ret = x.clone();
+            let mut ret = BigInt::clone(&x);
             for div in divs {
                 if let RetValue::Number(n) = div {
                     if n.is_zero() {
                         anyhow::bail!("0 is undefined to be divisor");
                     }
-                    ret /= n;
+                    ret /= &**n;
                 }
             }
-            Ok(RetValue::Number(ret))
+            Ok(RetValue::num(ret))
         }
         _ => unreachable!(),
     }
