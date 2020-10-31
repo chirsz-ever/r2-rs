@@ -18,7 +18,9 @@ SyntaxStruct = _{
     | Application
 }
 
-LambdaDef = { "lambda" ~ "(" ~ Identifier ~ ")" ~ SExpr+ }
+LambdaDef = { LAMBDA_SIGN ~ "(" ~ Identifier ~ ")" ~ SExpr+ }
+
+LAMBDA_SIGN = _{ "lambda" | "λ" }
 
 Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ SExpr+ }
 

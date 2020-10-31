@@ -2,6 +2,7 @@ use crate::eval::*;
 use crate::parse::*;
 use crate::utils::*;
 use rustyline::{config::Config, error::ReadlineError, highlight::*, validate::*, Editor};
+use rustyline::{KeyPress, Cmd};
 use rustyline_derive::{Completer, Helper, Hinter};
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::io;
@@ -10,6 +11,7 @@ pub fn repl() -> io::Result<()> {
     let conf = Config::builder().auto_add_history(true).build();
     let mut rl = Editor::with_config(conf);
     rl.set_helper(Some(MyHelper::default()));
+    rl.bind_sequence(KeyPress::Ctrl('\\'), Cmd::Insert(1, String::from("λ")));
     let mut env = prelude_env();
 
     for readline in rl.iter("> ") {
