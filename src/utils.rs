@@ -51,7 +51,7 @@ pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<built-in function {:p}>", &*self.0)
+        write!(f, "<procedure {:p}>", &*self.0)
     }
 }
 
