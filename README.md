@@ -12,7 +12,7 @@ R2 interpreter implemented with Rust
 
 本实现相对于原始版本增加了一个 `is_zero` 内置函数，当参数为 0 时结果是 `(lambda (x) (lambda (y) x))`，参数不为 0 时的结果是 `(lambda (x) (lambda (y) y))`，分别是无类型 lambda 演算中 `true` 和 `false` 的 Church 定义；增加了 `define` 和 `begin` 语法。
 
-可以使用 `(λ (var) expression)` 的形式定义 lambda 表达式；在 REPL 中按下 <kbd>Ctrl</kbd> + <kbd>\</kbd> 组合键会插入一个 `λ` 字符。
+可以使用 `(λ (var) expression)` 的形式定义 lambda 表达式；在 REPL 中按下 <kbd>Ctrl</kbd> + <kbd>\\</kbd> 组合键会插入一个 `λ` 字符。
 
 examples 目录下提供了一些示例源代码文件：
 - `yin.r2` 的计算结果为 6，说明 R2 语言采用的是词法作用域；
