@@ -100,8 +100,7 @@ mod test {
         let r = interp(&ast, &mut prelude_env()).unwrap();
         match (&r, &v) {
             (Number(n1), Number(n2)) => assert_eq!(n1, n2),
-            (Closure { .. }, Closure { .. }) => todo!(),
-            (BuiltInFunc { .. }, BuiltInFunc { .. }) => todo!(),
+            (Procedure(_), Procedure(_)) => todo!(),
             _ => panic!("{} is not equal to {}", r, v),
         }
     }

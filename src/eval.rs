@@ -10,12 +10,12 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
             .ok_or_else(|| format_err!("undefined variable \"{}\"", x))?
             .clone()),
         AST::Number(n) => Ok(RetValue::Number(n.clone())),
-        BuiltInFunc(func) => Ok(RetValue::BuiltInFunc(func.clone())),
-        LambdaDef { x, body } => Ok(RetValue::Closure {
-            arg: Rc::clone(x),
-            body: Rc::clone(body),
-            env: env.clone(),
-        }),
+        BuiltInFunc(func) => Ok(RetValue::Procedure(func.clone())),
+        LambdaDef { x, body } => Ok(RetValue::Procedure(func_from_ast(
+            Rc::clone(&x),
+            Rc::clone(&body),
+            env.clone(),
+        ))),
         Bind { x, e, body } => {
             let env_init = env.clone();
             let v1 = interp(e, env)?;
@@ -38,19 +38,7 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
             }
             *env = env_init;
             match v1 {
-                RetValue::Closure {
-                    ref arg,
-                    ref body,
-                    env: ref env_save,
-                } => {
-                    if argvs.len() == 1 {
-                        let v2 = argvs.into_iter().next().unwrap();
-                        interp_arr(&body, &mut env_save.extend(arg.clone(), v2))
-                    } else {
-                        anyhow::bail!("incorrect number of arguments to {}", v1)
-                    }
-                }
-                RetValue::BuiltInFunc(func) => func.0(&argvs),
+                RetValue::Procedure(func) => func.call(&argvs),
                 _ => anyhow::bail!("{} is not a procedure", v1),
             }
         }
@@ -72,6 +60,17 @@ fn interp_arr(es: &[AST], env: &mut Env) -> anyhow::Result<RetValue> {
     }
 }
 
+pub fn func_from_ast(x: Rc<str>, body: Rc<Vec<AST>>, env: Env) -> Function {
+    Function::new(move |args| {
+        if args.len() == 1 {
+            let arg = args[0].clone();
+            interp_arr(&body, &mut env.extend(x.clone(), arg))
+        } else {
+            anyhow::bail!("incorrect number of arguments")
+        }
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -90,7 +89,7 @@ mod test {
             _ => unreachable!(),
         };
         Application {
-            func: Rc::new(BuiltInFunc(func(bf))),
+            func: Rc::new(BuiltInFunc(Function::new(bf))),
             args: vec![arg1, arg2],
         }
     }
@@ -123,8 +122,7 @@ mod test {
         let result = interp(&ast, &mut prelude_env()).unwrap();
         match (&result, &exp) {
             (Number(n1), Number(n2)) => assert_eq!(n1, n2),
-            (Closure { .. }, Closure { .. }) => todo!(),
-            (BuiltInFunc { .. }, BuiltInFunc { .. }) => todo!(),
+            (Procedure(_), Procedure(_)) => todo!(),
             _ => panic!("{} is not equal to {}", result, exp),
         }
     }

@@ -3,15 +3,6 @@ use num_traits::identities::Zero;
 use std::fmt;
 use std::rc::Rc;
 
-#[derive(Clone)]
-pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
-
-impl fmt::Debug for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<built-in function {:p}>", &*self.0)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum AST {
     Identifier(Rc<str>),
@@ -61,19 +52,30 @@ pub fn bind(x: &str, e: AST, body: Vec<AST>) -> AST {
     }
 }
 
-pub fn func(f: impl Fn(&[RetValue]) -> anyhow::Result<RetValue> + 'static) -> Function {
-    Function(Rc::new(f) as _)
+#[derive(Clone)]
+pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<built-in function {:p}>", &*self.0)
+    }
 }
 
+impl Function {
+    pub fn new(f: impl Fn(&[RetValue]) -> anyhow::Result<RetValue> + 'static) -> Self {
+        Function(Rc::new(f) as _)
+    }
+
+    pub fn call(&self, args: &[RetValue]) -> anyhow::Result<RetValue> {
+        self.0(args)
+    }
+}
+
+// The "final" value
 #[derive(Debug, Clone)]
 pub enum RetValue {
     Number(BigInt),
-    Closure {
-        arg: Rc<str>,
-        body: Rc<Vec<AST>>,
-        env: Env,
-    },
-    BuiltInFunc(Function),
+    Procedure(Function),
     Unit,
 }
 
@@ -81,8 +83,7 @@ impl fmt::Display for RetValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RetValue::Number(n) => write!(f, "{}", n),
-            RetValue::Closure { .. } => write!(f, "<procedure {:p}>", self),
-            RetValue::BuiltInFunc(fun) => write!(f, "{:?}", fun),
+            RetValue::Procedure(fun) => write!(f, "{:?}", fun),
             RetValue::Unit => write!(f, ""),
         }
     }
@@ -221,28 +222,38 @@ pub fn builtin_iszero(args: &[RetValue]) -> anyhow::Result<RetValue> {
 
 pub fn prelude_env() -> Env {
     Env::new()
-        .extend("+".into(), RetValue::BuiltInFunc(func(builtin_plus)))
-        .extend("-".into(), RetValue::BuiltInFunc(func(builtin_minus)))
-        .extend("*".into(), RetValue::BuiltInFunc(func(builtin_multiply)))
-        .extend("/".into(), RetValue::BuiltInFunc(func(builtin_divide)))
+        .extend("+".into(), RetValue::Procedure(Function::new(builtin_plus)))
+        .extend(
+            "-".into(),
+            RetValue::Procedure(Function::new(builtin_minus)),
+        )
+        .extend(
+            "*".into(),
+            RetValue::Procedure(Function::new(builtin_multiply)),
+        )
+        .extend(
+            "/".into(),
+            RetValue::Procedure(Function::new(builtin_divide)),
+        )
         .extend(
             "is_zero".into(),
-            RetValue::BuiltInFunc(func(builtin_iszero)),
+            RetValue::Procedure(Function::new(builtin_iszero)),
         )
 }
 
+use crate::eval::func_from_ast;
 thread_local! {
-    static CHURCH_TRUE: RetValue = RetValue::Closure {
-        arg: "x".into(),
-        body: Rc::new(vec![lambda("y", vec![var("x")])]),
-        env: Env::new(),
-    };
+    static CHURCH_TRUE: RetValue = RetValue::Procedure(func_from_ast(
+        "x".into(),
+        Rc::new(vec![lambda("y", vec![var("x")])]),
+        Env::new(),
+    ));
 
-    static CHURCH_FALSE: RetValue = RetValue::Closure {
-        arg: "x".into(),
-        body: Rc::new(vec![lambda("y", vec![var("y")])]),
-        env: Env::new(),
-    };
+    static CHURCH_FALSE: RetValue = RetValue::Procedure(func_from_ast(
+        "x".into(),
+        Rc::new(vec![lambda("y", vec![var("y")])]),
+        Env::new(),
+    ));
 }
 
 pub fn church_true() -> RetValue {
