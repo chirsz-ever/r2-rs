@@ -1,7 +1,7 @@
 # r2-rs
 R2 interpreter implemented with Rust
 
-对照 [怎样写一个解释器](http://www.yinwang.org/blog-cn/2012/08/01/interpreter) 实现的 scheme 语言的子集 R2 语言的解释器。
+对照 [怎样写一个解释器](http://www.yinwang.org/blog-cn/2012/08/01/interpreter) 实现的 scheme 语言的<del>子集</del>方言 R2 语言的解释器。
 
 有三种执行方式（以下用 `r2c` 代表编译生成的可执行文件，可以用 `cargo run --` 代替）：
 - `r2c src.r2` 将文件 `src.r2` 中全部内容作为一个表达式执行计算
@@ -26,5 +26,10 @@ examples 目录下提供了一些示例源代码文件：
 - [x] 使用 `Rc` 链表作为 `Env` 类型
 - [x] 使用某 `BigInt` 作为整型
 - [x] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
+- [ ] 整合 `RetValue` 到 AST 中
+- [ ] 限制 deine 语法的出现范围
 - [ ] 增加原生 `boolean` 类型与 `if` 语法
+- [ ] 增加 `number?`，`boolean?`，`zero?` 等函数
+- [ ] 增加输入输出
 - [ ] 使用 structopt
+- [ ] 优化 lambda 所捕获变量
