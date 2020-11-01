@@ -2,7 +2,7 @@ use crate::eval::*;
 use crate::parse::*;
 use crate::utils::*;
 use rustyline::{config::Config, error::ReadlineError, highlight::*, validate::*, Editor};
-use rustyline::{KeyPress, Cmd};
+use rustyline::{Cmd, KeyPress};
 use rustyline_derive::{Completer, Helper, Hinter};
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::io;
@@ -21,7 +21,7 @@ pub fn repl() -> io::Result<()> {
                 if line.is_empty() {
                     continue;
                 }
-                match parse_expr(&line).and_then(|ast| interp(&ast, &mut env)) {
+                match parse_repl_input(&line).and_then(|ast| interp(&ast, &mut env)) {
                     Ok(RetValue::Unit) => {}
                     Ok(ret) => {
                         println!("{}", ret);

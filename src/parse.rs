@@ -14,24 +14,26 @@ pub fn parse_program(src: &str) -> anyhow::Result<Vec<AST>> {
     let program = R2Parser::parse(Rule::Program, &src)?.next().unwrap();
     let mut asts = Vec::new();
     for sexpr in program.into_inner() {
-        if let Rule::SExpr = sexpr.as_rule() {
-            asts.push(sexpr_to_ast(sexpr)?);
+        match sexpr.as_rule() {
+            Rule::SExpr => asts.push(sexpr_to_ast(sexpr)?),
+            Rule::Definition => asts.push(def_to_ast(sexpr)?),
+            _ => {} // ignore
         }
     }
     Ok(asts)
 }
 
-pub fn parse_expr(src: &str) -> anyhow::Result<AST> {
-    let input_inner = R2Parser::parse(Rule::SingleInput, &src)?
+pub fn parse_repl_input(src: &str) -> anyhow::Result<AST> {
+    let input_inner = R2Parser::parse(Rule::REPLInput, &src)?
         .next()
-        .unwrap() // Here is SingleInput
+        .unwrap() // Here is REPLInput
         .into_inner()
         .next()
         .unwrap();
-    if let Rule::SExpr = input_inner.as_rule() {
-        sexpr_to_ast(input_inner)
-    } else {
-        Ok(AST::Value(RetValue::Unit))
+    match input_inner.as_rule() {
+        Rule::SExpr => sexpr_to_ast(input_inner),
+        Rule::Definition => def_to_ast(input_inner),
+        _ => Ok(AST::Value(RetValue::Unit)),
     }
 }
 
@@ -45,30 +47,22 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
             match r {
                 Rule::LambdaDef => {
                     let x = inner.next().unwrap().as_str();
-                    let body = collect_sexpr(inner)?;
+                    let body = collect_block_body(inner)?;
                     lambda(x, body)
                 }
                 Rule::Bind => {
                     let x = inner.next().unwrap().as_str();
                     let e = sexpr_to_ast(inner.next().unwrap())?;
-                    let body = collect_sexpr(inner)?;
+                    let body = collect_block_body(inner)?;
                     bind(x, e, body)
                 }
-                Rule::Definition => {
-                    let x = inner.next().unwrap().as_str();
-                    let e = sexpr_to_ast(inner.next().unwrap())?;
-                    AST::Definition {
-                        x: x.into(),
-                        e: Rc::new(e),
-                    }
-                }
                 Rule::Block => {
-                    let es = collect_sexpr(inner)?;
+                    let es = collect_block_body(inner)?;
                     AST::Block(es)
                 }
                 Rule::Application => {
                     let func = sexpr_to_ast(inner.next().unwrap())?;
-                    let args = collect_sexpr(inner)?;
+                    let args = collect_block_body(inner)?; // assert all are SExpr
                     AST::Application {
                         func: Rc::new(func),
                         args,
@@ -81,11 +75,26 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
     Ok(ast)
 }
 
+fn def_to_ast(definition: Pair<Rule>) -> anyhow::Result<AST> {
+    let mut inner = definition.into_inner();
+    let x = inner.next().unwrap().as_str();
+    let e = sexpr_to_ast(inner.next().unwrap())?;
+    let ast = AST::Definition {
+        x: x.into(),
+        e: Rc::new(e),
+    };
+    Ok(ast)
+}
+
 #[inline]
-fn collect_sexpr(ps: Pairs<Rule>) -> anyhow::Result<Vec<AST>> {
+fn collect_block_body(ps: Pairs<Rule>) -> anyhow::Result<Vec<AST>> {
     let mut es = Vec::new();
-    for sexpr in ps {
-        es.push(sexpr_to_ast(sexpr)?);
+    for s in ps {
+        match s.as_rule() {
+            Rule::SExpr => es.push(sexpr_to_ast(s)?),
+            Rule::Definition => es.push(def_to_ast(s)?),
+            _ => unreachable!(),
+        }
     }
     Ok(es)
 }
@@ -97,7 +106,7 @@ mod test {
 
     #[inline]
     fn eval_eq(exp: &str, v: RetValue) {
-        let ast = parse_expr(exp.trim()).unwrap();
+        let ast = parse_repl_input(exp.trim()).unwrap();
         crate::eval::test::eval_eq(ast, v);
     }
 

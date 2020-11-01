@@ -19,7 +19,7 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
             let env_init = env.clone();
             let v1 = interp(e, env)?;
             *env = env_init;
-            interp_arr(&body, &mut env.extend(x.clone(), v1))
+            interp_block(&body, &mut env.extend(x.clone(), v1))
         }
         Definition { x, e } => {
             let env_init = env.clone();
@@ -27,7 +27,7 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
             *env = env_init.extend(x.clone(), v1);
             Ok(RetValue::Unit)
         }
-        Block(es) => interp_arr(&es, env),
+        Block(es) => interp_block(&es, env),
         Application { func, args } => {
             let env_init = env.clone();
             let v1 = interp(func, env)?;
@@ -46,7 +46,7 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
 
 // None => Unit
 // else => the last expression
-fn interp_arr(es: &[AST], env: &mut Env) -> anyhow::Result<RetValue> {
+fn interp_block(es: &[AST], env: &mut Env) -> anyhow::Result<RetValue> {
     match es {
         [] => Ok(RetValue::Unit),
         [lead @ .., last] => {
@@ -62,7 +62,7 @@ pub fn func_from_ast(x: Rc<str>, body: Rc<Vec<AST>>, env: Env) -> Function {
     Function::new(move |args| {
         if args.len() == 1 {
             let arg = args[0].clone();
-            interp_arr(&body, &mut env.extend(x.clone(), arg))
+            interp_block(&body, &mut env.extend(x.clone(), arg))
         } else {
             anyhow::bail!("incorrect number of arguments")
         }

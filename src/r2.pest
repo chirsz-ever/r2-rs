@@ -1,6 +1,6 @@
-Program = { SOI ~ SExpr* ~ EOI }
+Program = { SOI ~ (Definition | SExpr)* ~ EOI }
 
-SingleInput = { SOI ~ SExpr? ~ EOI }
+REPLInput = { SOI ~ (Definition | SExpr)? ~ EOI }
 
 SExpr = {
     Literal
@@ -8,31 +8,35 @@ SExpr = {
     | SList
 }
 
-SList = _{ "(" ~ SyntaxStruct ~ ")" }
+// This return Unit value
+Definition = { "(" ~ DefSyntax ~ ")" }
 
-SyntaxStruct = _{
+DefSyntax = _{ "define" ~ Identifier ~ SExpr }
+
+SList = _{ "(" ~ CalcSyntax ~ ")" }
+
+CalcSyntax = _{
     LambdaDef
     | Bind
-    | Definition
     | Block
     | Application
 }
 
-LambdaDef = { LAMBDA_SIGN ~ "(" ~ Identifier ~ ")" ~ SExpr+ }
+// the last item must be a expression
+BlockSyntax = _{ Definition* ~ (SExpr+ ~ Definition+)* ~ SExpr+ }
+
+LambdaDef = { LAMBDA_SIGN ~ "(" ~ Identifier ~ ")" ~ BlockSyntax }
 
 LAMBDA_SIGN = _{ "lambda" | "λ" }
 
-Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ SExpr+ }
+Bind = { "let" ~ "(" ~ BindPair ~ ")" ~ BlockSyntax }
 
 BindPair = _{
     "(" ~ Identifier ~ SExpr ~ ")"
     | "[" ~ Identifier ~ SExpr ~ "]"
 }
 
-// This return Unit value
-Definition = { "define" ~ Identifier ~ SExpr }
-
-Block = { "begin" ~ SExpr+ }
+Block = { "begin" ~ BlockSyntax }
 
 Application = { SExpr+ }
 
@@ -52,7 +56,7 @@ Identifier = @{
     !Literal ~ !Keyword ~ (ASCII_ALPHANUMERIC | SCHEME_EXT)+
 }
 
-Keyword = { "lambda" | "let" }
+Keyword = { "lambda" | "let" | "define" | "begin" }
 
 SCHEME_EXT = { 
     "!" | "$" | "%" | "&" |
