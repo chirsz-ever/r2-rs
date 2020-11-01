@@ -41,6 +41,21 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
                 _ => anyhow::bail!("{} is not a procedure", v1),
             }
         }
+        IfExpr {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            let condition = match interp(&condition, env)? {
+                RetValue::Boolean(false) => false,
+                _ => true,
+            };
+            if condition {
+                interp(&then_branch, env)
+            } else {
+                interp(&else_branch, env)
+            }
+        }
     }
 }
 

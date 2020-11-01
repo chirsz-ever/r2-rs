@@ -20,6 +20,7 @@ CalcSyntax = _{
     | Bind
     | Block
     | Application
+    | IfExpr
 }
 
 // the last item must be a expression
@@ -40,8 +41,11 @@ Block = { "begin" ~ BlockSyntax }
 
 Application = { SExpr+ }
 
+IfExpr = { "if" ~ SExpr ~ SExpr ~ SExpr }
+
 Literal = _{
     Number
+    | Boolean
 }
 
 Number = _{
@@ -52,11 +56,15 @@ Integer = @{
     ASCII_DIGIT+
 }
 
+Boolean = {
+    "#t" | "#f"
+}
+
 Identifier = @{
     !Literal ~ !Keyword ~ (ASCII_ALPHANUMERIC | SCHEME_EXT)+
 }
 
-Keyword = { "lambda" | "let" | "define" | "begin" }
+Keyword = { "lambda" | "let" | "define" | "begin" | "if" }
 
 SCHEME_EXT = { 
     "!" | "$" | "%" | "&" |

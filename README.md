@@ -18,6 +18,7 @@ examples 目录下提供了一些示例源代码文件：
 - `yin.r2` 的计算结果为 6，说明 R2 语言采用的是词法作用域；
 - `yc.r2` 中利用 Y Combinator 定义出递归的阶乘函数并计算了 `100!` 的值。
 - `yc_new.r2` 意义与 `yc.r2` 相同，但使用 `define` 语法。
+- `yc_with_if.r2` 意义与 `yc_new.r2` 相同，但使用 `if` 语法。
 
 ## TODO
 
@@ -29,8 +30,8 @@ examples 目录下提供了一些示例源代码文件：
 - [x] 使用某 `BigInt` 作为整型
 - [x] 使 `+`、`-`、`*`、`/` 行为与 scheme 中一致
 - [x] 整合 `RetValue` 到 AST 中
-- [ ] 限制 deine 语法的出现范围
-- [ ] 增加原生 `boolean` 类型与 `if` 语法
+- [x] 限制 deine 语法的出现范围
+- [x] 增加原生 `boolean` 类型与 `if` 语法
 - [ ] 增加 `number?`，`boolean?`，`zero?` 等函数
 - [ ] 增加输入输出
 - [ ] 使用 structopt

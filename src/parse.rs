@@ -41,6 +41,11 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
     let inner = sexpr.into_inner().next().unwrap();
     let ast = match inner.as_rule() {
         Rule::Integer => AST::Value(RetValue::num(inner.as_str().parse()?)),
+        Rule::Boolean => AST::Value(RetValue::Boolean(match inner.as_str() {
+            "#t" => true,
+            "#f" => false,
+            _ => unreachable!(),
+        })),
         Rule::Identifier => var(inner.as_str()),
         r => {
             let mut inner = inner.into_inner();
@@ -66,6 +71,16 @@ fn sexpr_to_ast(sexpr: Pair<Rule>) -> anyhow::Result<AST> {
                     AST::Application {
                         func: Rc::new(func),
                         args,
+                    }
+                }
+                Rule::IfExpr => {
+                    let condition = sexpr_to_ast(inner.next().unwrap())?;
+                    let then_branch = sexpr_to_ast(inner.next().unwrap())?;
+                    let else_branch = sexpr_to_ast(inner.next().unwrap())?;
+                    AST::IfExpr {
+                        condition: Rc::new(condition),
+                        then_branch: Rc::new(then_branch),
+                        else_branch: Rc::new(else_branch),
                     }
                 }
                 _ => unreachable!(),
@@ -207,5 +222,26 @@ pub mod test {
     #[should_panic]
     fn no_define_1() {
         eval_eq("(begin (define x 2))", RetValue::Unit)
+    }
+
+    #[test]
+    fn if_1() {
+        eval_eq("(if #t 1 2)", rvnum(1));
+        eval_eq("(if #f 1 2)", rvnum(2));
+    }
+
+    #[test]
+    fn if_2() {
+        eval_eq("(if 0 1 2)", rvnum(1));
+        eval_eq("(if + 1 2)", rvnum(1));
+    }
+
+    #[test]
+    fn if_3() {
+        eval_eq("(let ((x (if #t 1 2))) x)", rvnum(1));
+        eval_eq(
+            "(let ((x (lambda (y) (if (((is_zero y) #t) #f) 1 2)))) (x 0))",
+            rvnum(1),
+        );
     }
 }

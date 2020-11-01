@@ -25,6 +25,11 @@ pub enum AST {
         func: Rc<AST>,
         args: Vec<AST>,
     },
+    IfExpr {
+        condition: Rc<AST>,
+        then_branch: Rc<AST>,
+        else_branch: Rc<AST>,
+    },
 }
 
 pub fn lambda(x: &str, body: Vec<AST>) -> AST {
@@ -71,6 +76,7 @@ impl Function {
 #[derive(Debug, Clone)]
 pub enum RetValue {
     Number(Rc<BigInt>),
+    Boolean(bool),
     Procedure(Function),
     Unit,
 }
@@ -87,6 +93,13 @@ impl fmt::Display for RetValue {
         match self {
             RetValue::Number(n) => write!(f, "{}", n),
             RetValue::Procedure(fun) => write!(f, "{:?}", fun),
+            RetValue::Boolean(b) => {
+                if *b {
+                    write!(f, "#t")
+                } else {
+                    write!(f, "#f")
+                }
+            }
             RetValue::Unit => write!(f, ""),
         }
     }
