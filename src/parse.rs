@@ -100,12 +100,12 @@ fn collect_block_body(ps: Pairs<Rule>) -> anyhow::Result<Vec<AST>> {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::eval::test::*;
 
     #[inline]
-    fn eval_eq(exp: &str, v: RetValue) {
+    pub fn eval_eq(exp: &str, v: RetValue) {
         let ast = parse_repl_input(exp.trim()).unwrap();
         crate::eval::test::eval_eq(ast, v);
     }
@@ -181,5 +181,31 @@ mod test {
     #[test]
     fn church_false_test() {
         eval_eq("(((is_zero 1) 1) 2)", rvnum(2))
+    }
+
+    #[test]
+    fn define_1() {
+        eval_eq("(let ((x 1)) (define x 2) x)", rvnum(2))
+    }
+
+    #[test]
+    fn define_2() {
+        eval_eq("(let ((x 1)) (define x 2) (define x 3) x)", rvnum(3))
+    }
+
+    #[test]
+    fn define_3() {
+        eval_eq("(let ((x 1)) (define x 2) (define y 3) (+ x y))", rvnum(5))
+    }
+
+    #[test]
+    fn begin_1() {
+        eval_eq("(begin (define x 2) x)", rvnum(2))
+    }
+
+    #[test]
+    #[should_panic]
+    fn no_define_1() {
+        eval_eq("(begin (define x 2))", RetValue::Unit)
     }
 }
