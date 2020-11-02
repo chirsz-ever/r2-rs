@@ -15,12 +15,18 @@ macro_rules! fail_with_caller {
     }
 }
 
+macro_rules! fail_nan {
+    ($name:expr, $arg:expr) => {
+        fail_with_caller!($name, "{} is not a number", $arg);
+    };
+}
+
 macro_rules! fail_if_nan {
     ($name:expr, $arg:expr) => {
         match $arg {
             RetValue::Number(_) => {}
             _ => {
-                fail_with_caller!($name, "{} is not a number", $arg);
+                fail_nan!($name, $arg);
             }
         }
     };

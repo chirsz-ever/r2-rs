@@ -73,16 +73,38 @@ pub fn builtin_divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<R
     }
 }
 
-pub fn builtin_is_zero(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+pub fn builtin_number_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     match args {
-        [RetValue::Number(arg)] => {
-            if arg.is_zero() {
-                Ok(church_true())
-            } else {
-                Ok(church_false())
-            }
-        }
-        [_] => Ok(church_false()),
+        [RetValue::Number(_)] => Ok(RetValue::Boolean(true)),
+        [_] => Ok(RetValue::Boolean(false)),
         _ => fail_wrong_argc!(name),
+    }
+}
+
+pub fn builtin_zero_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(arg)] => Ok(RetValue::Boolean(arg.is_zero())),
+        [arg] => fail_nan!(name, arg),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
+pub fn prelude_env() -> Env {
+    make_env! {
+        "+" => builtin_plus,
+        "-" => builtin_minus,
+        "*" => builtin_multiply,
+        "/" => builtin_divide,
+        "zero?" => builtin_zero_q,
+        "number?" => builtin_number_q,
+        "is_zero" =>
+            "(lambda (n)
+                (define tru (lambda (x) (lambda (y) x)))
+                (define fls (lambda (x) (lambda (y) y)))
+                (if (number? n)
+                    (if (zero? n)
+                        tru
+                        fls)
+                    fls))",
     }
 }

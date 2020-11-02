@@ -1,3 +1,4 @@
+pub use crate::builtin::prelude_env;
 pub use num_bigint::BigInt;
 use std::fmt;
 use std::rc::Rc;
@@ -137,38 +138,4 @@ impl Env {
             next: self.0.clone(),
         })))
     }
-}
-
-pub fn prelude_env() -> Env {
-    use crate::builtin::*;
-    make_env! {
-        "+" => builtin_plus,
-        "-" => builtin_minus,
-        "*" => builtin_multiply,
-        "/" => builtin_divide,
-        "is_zero" => builtin_is_zero,
-    }
-}
-
-use crate::eval::func_from_ast;
-thread_local! {
-    static CHURCH_TRUE: RetValue = RetValue::Procedure(func_from_ast(
-        "x".into(),
-        Rc::new(vec![lambda("y", vec![var("x")])]),
-        Env::new(),
-    ));
-
-    static CHURCH_FALSE: RetValue = RetValue::Procedure(func_from_ast(
-        "x".into(),
-        Rc::new(vec![lambda("y", vec![var("y")])]),
-        Env::new(),
-    ));
-}
-
-pub fn church_true() -> RetValue {
-    CHURCH_TRUE.with(|t| t.clone())
-}
-
-pub fn church_false() -> RetValue {
-    CHURCH_FALSE.with(|f| f.clone())
 }

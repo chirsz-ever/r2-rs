@@ -106,6 +106,11 @@ pub mod test {
     }
 
     #[inline]
+    pub fn rvbool(b: bool) -> RetValue {
+        RetValue::Boolean(b)
+    }
+
+    #[inline]
     pub fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
         use crate::builtin::*;
         let bf = match opc {
@@ -154,6 +159,7 @@ pub mod test {
         let result = interp(&ast, &mut prelude_env()).unwrap();
         match (&result, &exp) {
             (Number(n1), Number(n2)) => assert_eq!(n1, n2),
+            (Boolean(b1), Boolean(b2)) => assert_eq!(b1, b2),
             (Procedure(_), Procedure(_)) => todo!(),
             _ => panic!("{} is not equal to {}", result, exp),
         }
@@ -312,5 +318,32 @@ pub mod test {
     #[should_panic]
     fn builtin_divide_4() {
         eval_str_eq("(/ 4 0)", rvnum(0));
+    }
+
+    #[test]
+    fn number_q_1() {
+        eval_str_eq("(number? 0)", rvbool(true));
+        eval_str_eq("(number? 1)", rvbool(true));
+        eval_str_eq("(number? #t)", rvbool(false));
+        eval_str_eq("(number? is_zero)", rvbool(false));
+    }
+
+    #[test]
+    fn zero_q_1() {
+        eval_str_eq("(zero? 0)", rvbool(true));
+        eval_str_eq("(zero? 1)", rvbool(false));
+        eval_str_eq("(zero? 167)", rvbool(false));
+    }
+
+    #[test]
+    #[should_panic]
+    fn zero_q_2() {
+        eval_str_eq("(zero? #t)", rvbool(true));
+    }
+
+    #[test]
+    #[should_panic]
+    fn zero_q_3() {
+        eval_str_eq("(zero? is_zero)", rvbool(true));
     }
 }
