@@ -1,5 +1,4 @@
 pub use num_bigint::BigInt;
-use num_traits::identities::Zero;
 use std::fmt;
 use std::rc::Rc;
 
@@ -52,7 +51,7 @@ pub fn bind(x: &str, e: AST, body: Vec<AST>) -> AST {
 }
 
 #[derive(Clone)]
-pub struct Function(pub Rc<dyn Fn(&[RetValue]) -> anyhow::Result<RetValue>>);
+pub struct Function(pub Rc<dyn Fn(Option<&str>, &[RetValue]) -> anyhow::Result<RetValue>>);
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -62,13 +61,15 @@ impl fmt::Debug for Function {
 
 impl Function {
     #[inline]
-    pub fn new(f: impl Fn(&[RetValue]) -> anyhow::Result<RetValue> + 'static) -> Self {
+    pub fn new(
+        f: impl Fn(Option<&str>, &[RetValue]) -> anyhow::Result<RetValue> + 'static,
+    ) -> Self {
         Function(Rc::new(f) as _)
     }
 
     #[inline]
-    pub fn call(&self, args: &[RetValue]) -> anyhow::Result<RetValue> {
-        self.0(args)
+    pub fn call(&self, name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+        self.0(name, args)
     }
 }
 
@@ -138,105 +139,8 @@ impl Env {
     }
 }
 
-pub fn builtin_plus(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    for arg in args {
-        if let RetValue::Number(_) = arg {
-        } else {
-            anyhow::bail!("{} is not a number", arg)
-        }
-    }
-    let mut sum = BigInt::from(0);
-    for arg in args {
-        if let RetValue::Number(n) = arg {
-            sum += &**n;
-        }
-    }
-    Ok(RetValue::num(sum))
-}
-
-pub fn builtin_multiply(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    for arg in args {
-        if let RetValue::Number(_) = arg {
-        } else {
-            anyhow::bail!("{} is not a number", arg)
-        }
-    }
-    let mut prod = BigInt::from(1);
-    for arg in args {
-        if let RetValue::Number(n) = arg {
-            prod *= &**n;
-            if prod.is_zero() {
-                return Ok(RetValue::num(prod));
-            }
-        }
-    }
-    Ok(RetValue::num(prod))
-}
-
-pub fn builtin_minus(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    for arg in args {
-        if let RetValue::Number(_) = arg {
-        } else {
-            anyhow::bail!("{} is not a number", arg)
-        }
-    }
-    match args {
-        [] => anyhow::bail!("incorrect argument count"),
-        [RetValue::Number(x)] => Ok(RetValue::num(-&**x)),
-        [RetValue::Number(x), subs @ ..] => {
-            let mut ret = BigInt::clone(&x);
-            for sub in subs {
-                if let RetValue::Number(n) = sub {
-                    ret -= &**n;
-                }
-            }
-            Ok(RetValue::num(ret))
-        }
-        _ => unreachable!(),
-    }
-}
-
-pub fn builtin_divide(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    for arg in args {
-        if let RetValue::Number(_) = arg {
-        } else {
-            anyhow::bail!("{} is not a number", arg)
-        }
-    }
-    match args {
-        [] => anyhow::bail!("incorrect argument count"),
-        [RetValue::Number(x)] => Ok(RetValue::num(1 / &**x)),
-        [RetValue::Number(x), divs @ ..] => {
-            let mut ret = BigInt::clone(&x);
-            for div in divs {
-                if let RetValue::Number(n) = div {
-                    if n.is_zero() {
-                        anyhow::bail!("0 is undefined to be divisor");
-                    }
-                    ret /= &**n;
-                }
-            }
-            Ok(RetValue::num(ret))
-        }
-        _ => unreachable!(),
-    }
-}
-
-pub fn builtin_iszero(args: &[RetValue]) -> anyhow::Result<RetValue> {
-    match args {
-        [RetValue::Number(arg)] => {
-            if arg.is_zero() {
-                Ok(church_true())
-            } else {
-                Ok(church_false())
-            }
-        }
-        [_] => Ok(church_false()),
-        _ => anyhow::bail!("incorrect argument count"),
-    }
-}
-
 pub fn prelude_env() -> Env {
+    use crate::builtin::*;
     Env::new()
         .extend("+".into(), RetValue::Procedure(Function::new(builtin_plus)))
         .extend(
@@ -253,7 +157,7 @@ pub fn prelude_env() -> Env {
         )
         .extend(
             "is_zero".into(),
-            RetValue::Procedure(Function::new(builtin_iszero)),
+            RetValue::Procedure(Function::new(builtin_is_zero)),
         )
 }
 
@@ -278,4 +182,38 @@ pub fn church_true() -> RetValue {
 
 pub fn church_false() -> RetValue {
     CHURCH_FALSE.with(|f| f.clone())
+}
+
+macro_rules! fail_with_caller {
+    ($name:expr, $msg:literal $(,)?) => {
+        if let Some(name) = $name {
+            anyhow::bail!(concat!("Exception in call `{}`: ", $msg), name);
+        } else {
+            anyhow::bail!(concat!("Exception: ", $msg));
+        }
+    };
+    ($name:expr, $fmt:expr, $($arg:tt)*) => {
+        if let Some(name) = $name {
+            anyhow::bail!(concat!("Exception in call `{}`: ", $fmt), name, $($arg)*);
+        } else {
+            anyhow::bail!(concat!("Exception: ", $fmt), $($arg)*);
+        }
+    }
+}
+
+macro_rules! fail_if_nan {
+    ($name:expr, $arg:expr) => {
+        match $arg {
+            RetValue::Number(_) => {}
+            _ => {
+                fail_with_caller!($name, "{} is not a number", $arg);
+            }
+        }
+    };
+}
+
+macro_rules! fail_wrong_argc {
+    ($name:expr) => {
+        fail_with_caller!($name, "incorrect argument count");
+    };
 }

@@ -3,10 +3,12 @@
 #[macro_use]
 extern crate clap;
 
+#[macro_use]
+mod utils;
+mod builtin;
 mod eval;
 mod parse;
 mod repl;
-mod utils;
 
 use crate::eval::*;
 use crate::parse::*;

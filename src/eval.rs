@@ -30,6 +30,11 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
         Block(es) => interp_block(&es, env),
         Application { func, args } => {
             let env_init = env.clone();
+            let fname = if let Identifier(ident) = &**func {
+                Some(&**ident)
+            } else {
+                None
+            };
             let v1 = interp(func, env)?;
             let mut argvs = Vec::new();
             for arg in args {
@@ -37,7 +42,7 @@ pub fn interp(exp: &AST, env: &mut Env) -> anyhow::Result<RetValue> {
             }
             *env = env_init;
             match v1 {
-                RetValue::Procedure(func) => func.call(&argvs),
+                RetValue::Procedure(func) => func.call(fname, &argvs),
                 _ => anyhow::bail!("{} is not a procedure", v1),
             }
         }
@@ -74,12 +79,12 @@ fn interp_block(es: &[AST], env: &mut Env) -> anyhow::Result<RetValue> {
 }
 
 pub fn func_from_ast(x: Rc<str>, body: Rc<Vec<AST>>, env: Env) -> Function {
-    Function::new(move |args| {
+    Function::new(move |name, args| {
         if args.len() == 1 {
             let arg = args[0].clone();
             interp_block(&body, &mut env.extend(x.clone(), arg))
         } else {
-            anyhow::bail!("incorrect number of arguments")
+            fail_wrong_argc!(name)
         }
     })
 }
@@ -102,6 +107,7 @@ pub mod test {
 
     #[inline]
     pub fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
+        use crate::builtin::*;
         let bf = match opc {
             "+" => builtin_plus,
             "-" => builtin_minus,
@@ -124,8 +130,8 @@ pub mod test {
     }
 
     #[inline]
-    pub fn app_id(idnet: &str, arg: AST) -> AST {
-        app(Identifier(idnet.into()), arg)
+    pub fn app_id(ident: &str, arg: AST) -> AST {
+        app(Identifier(ident.into()), arg)
     }
 
     #[inline]
