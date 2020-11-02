@@ -92,7 +92,6 @@ pub fn func_from_ast(x: Rc<str>, body: Rc<Vec<AST>>, env: Env) -> Function {
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::parse::test::eval_eq as eval_str_eq;
     use RetValue::*;
 
     #[inline]
@@ -263,87 +262,5 @@ pub mod test {
             app(app(app_id("is_zero", num(1)), num(1)), num(2)),
             rvnum(2),
         )
-    }
-
-    #[test]
-    fn builtin_add_1() {
-        eval_str_eq("(+)", rvnum(0));
-        eval_str_eq("(+ 2)", rvnum(2));
-        eval_str_eq("(+ 3 4)", rvnum(7));
-        eval_str_eq("(+ 3 4 5)", rvnum(12));
-    }
-
-    #[test]
-    fn builtin_minus_1() {
-        eval_str_eq("(- 2)", rvnum(-2));
-        eval_str_eq("(- 3 4)", rvnum(-1));
-        eval_str_eq("(- 3 4 5)", rvnum(-6));
-    }
-
-    #[test]
-    #[should_panic]
-    fn builtin_minus_2() {
-        eval_str_eq("(-)", rvnum(0));
-    }
-
-    #[test]
-    fn builtin_mul_1() {
-        eval_str_eq("(*)", rvnum(1));
-        eval_str_eq("(* 2)", rvnum(2));
-        eval_str_eq("(* 3 4)", rvnum(12));
-        eval_str_eq("(* 3 4 5)", rvnum(60));
-    }
-
-    #[test]
-    fn builtin_divide_1() {
-        eval_str_eq("(/ 1)", rvnum(1));
-        eval_str_eq("(/ 2)", rvnum(0));
-        eval_str_eq("(/ 4 2)", rvnum(2));
-        eval_str_eq("(/ 729 9 3)", rvnum(27));
-    }
-
-    #[test]
-    #[should_panic]
-    fn builtin_divide_2() {
-        eval_str_eq("(/)", rvnum(0));
-    }
-
-    #[test]
-    #[should_panic]
-    fn builtin_divide_3() {
-        eval_str_eq("(/ 0)", rvnum(0));
-    }
-
-    #[test]
-    #[should_panic]
-    fn builtin_divide_4() {
-        eval_str_eq("(/ 4 0)", rvnum(0));
-    }
-
-    #[test]
-    fn number_q_1() {
-        eval_str_eq("(number? 0)", rvbool(true));
-        eval_str_eq("(number? 1)", rvbool(true));
-        eval_str_eq("(number? #t)", rvbool(false));
-        eval_str_eq("(number? is_zero)", rvbool(false));
-    }
-
-    #[test]
-    fn zero_q_1() {
-        eval_str_eq("(zero? 0)", rvbool(true));
-        eval_str_eq("(zero? 1)", rvbool(false));
-        eval_str_eq("(zero? 167)", rvbool(false));
-    }
-
-    #[test]
-    #[should_panic]
-    fn zero_q_2() {
-        eval_str_eq("(zero? #t)", rvbool(true));
-    }
-
-    #[test]
-    #[should_panic]
-    fn zero_q_3() {
-        eval_str_eq("(zero? is_zero)", rvbool(true));
     }
 }
