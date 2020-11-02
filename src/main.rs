@@ -5,11 +5,11 @@ extern crate clap;
 
 #[macro_use]
 mod macros;
-mod utils;
 mod builtin;
 mod eval;
 mod parse;
 mod repl;
+mod utils;
 
 use crate::eval::*;
 use crate::parse::*;

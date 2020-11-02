@@ -141,24 +141,13 @@ impl Env {
 
 pub fn prelude_env() -> Env {
     use crate::builtin::*;
-    Env::new()
-        .extend("+".into(), RetValue::Procedure(Function::new(builtin_plus)))
-        .extend(
-            "-".into(),
-            RetValue::Procedure(Function::new(builtin_minus)),
-        )
-        .extend(
-            "*".into(),
-            RetValue::Procedure(Function::new(builtin_multiply)),
-        )
-        .extend(
-            "/".into(),
-            RetValue::Procedure(Function::new(builtin_divide)),
-        )
-        .extend(
-            "is_zero".into(),
-            RetValue::Procedure(Function::new(builtin_is_zero)),
-        )
+    make_env! {
+        "+" => builtin_plus,
+        "-" => builtin_minus,
+        "*" => builtin_multiply,
+        "/" => builtin_divide,
+        "is_zero" => builtin_is_zero,
+    }
 }
 
 use crate::eval::func_from_ast;

@@ -31,3 +31,27 @@ macro_rules! fail_wrong_argc {
         fail_with_caller!($name, "incorrect argument count");
     };
 }
+
+macro_rules! env_extend_args {
+    ($func:ident, $e:ident) => {
+        $crate::utils::RetValue::Procedure($crate::utils::Function::new($func))
+    };
+    ($func:literal, $e:ident) => {
+        $crate::parse::parse_repl_input($func)
+            .and_then(|ast| $crate::eval::interp(&ast, &mut $e))
+            .unwrap()
+    };
+}
+
+macro_rules! make_env {
+    { $($name:expr => $value:tt),* $(,)? } => {
+        {
+            let mut e = $crate::utils::Env::new();
+            $({
+                    let v = env_extend_args!($value, e);
+                    e = e.extend($name.into(), v);
+            })*
+            e
+        }
+    };
+}
