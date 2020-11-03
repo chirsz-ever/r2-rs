@@ -53,7 +53,7 @@ Number = _{
 }
 
 Integer = @{
-    ASCII_DIGIT+
+    "-"? ~ ASCII_DIGIT+
 }
 
 Boolean = {
