@@ -19,6 +19,7 @@ examples 目录下提供了一些示例源代码文件：
 - `yc.r2` 中利用 Y Combinator 定义出递归的阶乘函数并计算了 `100!` 的值。
 - `yc_new.r2` 意义与 `yc.r2` 相同，但使用 `define` 语法。
 - `yc_with_if.r2` 意义与 `yc_new.r2` 相同，但使用 `if` 语法。
+- `yc_wuse_builtin.r2` 意义与 `yc_with_if.r2` 相同，但使用 `zero?` 判断数字是否为 0。
 
 ## TODO
 
