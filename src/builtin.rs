@@ -117,6 +117,42 @@ number_binary_predicate! { num_gt, n1, n2, n1 >  n2 }
 number_binary_predicate! { num_le, n1, n2, n1 <= n2 }
 number_binary_predicate! { num_ge, n1, n2, n1 >= n2 }
 
+fn num_max(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    if args.len() == 0 {
+        fail_wrong_argc!(name);
+    }
+    for arg in args {
+        fail_if_nan!(name, arg);
+    }
+    let max_n = args
+        .iter()
+        .map(|a| match a {
+            RetValue::Number(n) => n,
+            _ => unreachable!(),
+        })
+        .max()
+        .unwrap();
+    Ok(RetValue::Number(max_n.clone()))
+}
+
+fn num_min(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    if args.len() == 0 {
+        fail_wrong_argc!(name);
+    }
+    for arg in args {
+        fail_if_nan!(name, arg);
+    }
+    let max_n = args
+        .iter()
+        .map(|a| match a {
+            RetValue::Number(n) => n,
+            _ => unreachable!(),
+        })
+        .min()
+        .unwrap();
+    Ok(RetValue::Number(max_n.clone()))
+}
+
 pub fn prelude_env() -> Env {
     make_env! {
         "+"          => plus,
@@ -137,6 +173,8 @@ pub fn prelude_env() -> Env {
         ">"          => num_gt,
         "<="         => num_le,
         ">="         => num_le,
+        "max"        => num_max,
+        "min"        => num_min,
         "is_zero"    =>
             "(lambda (n)
                 (define tru (lambda (x) (lambda (y) x)))
@@ -260,5 +298,45 @@ mod test {
     #[should_panic]
     fn zero_q_3() {
         eval_eq("(zero? is_zero)", rvbool(true));
+    }
+
+    #[test]
+    fn min_1() {
+        eval_eq("(min 1 2 3)", rvnum(1));
+        eval_eq("(min 19 2 3)", rvnum(2));
+        eval_eq("(min 123)", rvnum(123));
+        eval_eq("(min 3 2 1 0)", rvnum(0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn min_2() {
+        eval_eq("(min)", rvnum(0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn min_3() {
+        eval_eq("(min #f 2 3)", rvnum(0));
+    }
+
+    #[test]
+    fn max_1() {
+        eval_eq("(max 1 2 3)", rvnum(3));
+        eval_eq("(max 19 2 3)", rvnum(19));
+        eval_eq("(max 123)", rvnum(123));
+        eval_eq("(max 3 2 1 0)", rvnum(3));
+    }
+
+    #[test]
+    #[should_panic]
+    fn max_2() {
+        eval_eq("(max)", rvnum(0));
+    }
+
+    #[test]
+    #[should_panic]
+    fn max_3() {
+        eval_eq("(max 1 #t 3)", rvnum(0));
     }
 }
