@@ -38,7 +38,7 @@ examples 目录下提供了一些示例源代码文件：
   - [ ] `eqv?`，`equal?`
   - [x] `zero?`，`positive?`，`negative`，`odd?`，`even?`
   - [x] `=`，`<`，`>`，`<=`，`>=`
-  - [ ] `max`，`min`，`abs`，`expt`
+  - [x] `max`，`min`，`abs`，`expt`
   - [ ] `not`，`and`，`or`
 - [ ] <del>使 `begin` 行为与 scheme 中一致（不引入作用域）</del>（已经是了）
 - [ ] 增加输入输出

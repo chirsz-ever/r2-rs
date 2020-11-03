@@ -1,5 +1,6 @@
 use crate::utils::*;
-use num::{Integer, Signed, Zero};
+use num::{pow::Pow, Integer, One, Signed, Zero};
+use std::convert::TryFrom;
 
 pub fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
@@ -153,6 +154,44 @@ fn num_min(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     Ok(RetValue::Number(max_n.clone()))
 }
 
+fn num_abs(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(x)] => Ok(RetValue::num(x.abs())),
+        [arg] => fail_nan!(name, arg),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
+fn expt(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Number(n1), RetValue::Number(n2)] => {
+            let ret = if n2.is_zero() {
+                // x^0 = 1
+                RetValue::num(One::one())
+            } else if n1.is_zero() {
+                // 0^x = 0 (x != 0)
+                RetValue::num(Zero::zero())
+            } else if n1.is_one() {
+                // 1^x = 1
+                RetValue::num(One::one())
+            } else if n2.is_negative() {
+                // [x^neg] = 0 (neg < 0)
+                RetValue::num(Zero::zero())
+            } else if n2.is_one() {
+                RetValue::Number(n2.clone())
+            } else {
+                let n1 = BigInt::clone(n1);
+                let n2u = num::BigUint::try_from(BigInt::clone(n2))?;
+                RetValue::num(n1.pow(n2u))
+            };
+            Ok(ret)
+        }
+        [RetValue::Number(_), arg2] => fail_nan!(name, arg2),
+        [arg1, _] => fail_nan!(name, arg1),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
 pub fn prelude_env() -> Env {
     make_env! {
         "+"          => plus,
@@ -175,6 +214,8 @@ pub fn prelude_env() -> Env {
         ">="         => num_le,
         "max"        => num_max,
         "min"        => num_min,
+        "abs"        => num_abs,
+        "expt"       => expt,
         "is_zero"    =>
             "(lambda (n)
                 (define tru (lambda (x) (lambda (y) x)))
@@ -191,6 +232,11 @@ pub fn prelude_env() -> Env {
 mod test {
     use crate::eval::test::{rvbool, rvnum};
     use crate::parse::test::eval_eq;
+
+    #[inline]
+    fn snum(s: &str) -> crate::utils::RetValue {
+        crate::utils::RetValue::num(s.parse().unwrap())
+    }
 
     #[test]
     fn add_1() {
@@ -338,5 +384,22 @@ mod test {
     #[should_panic]
     fn max_3() {
         eval_eq("(max 1 #t 3)", rvnum(0));
+    }
+
+    #[test]
+    fn abs_1() {
+        eval_eq("(abs 123)", rvnum(123));
+        eval_eq("(abs 0)", rvnum(0));
+        eval_eq("(abs -97)", rvnum(97));
+    }
+
+    #[test]
+    fn expt_1() {
+        eval_eq("(expt 0 0)", rvnum(1));
+        eval_eq("(expt 0 1)", rvnum(0));
+        eval_eq("(expt 2 3)", rvnum(8));
+        eval_eq("(expt 1 -1)", rvnum(1));
+        eval_eq("(expt 2 -1)", rvnum(0));
+        eval_eq("(expt 32 23)", snum("41538374868278621028243970633760768"));
     }
 }
