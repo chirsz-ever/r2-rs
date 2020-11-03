@@ -154,14 +154,13 @@ pub mod test {
 
     #[inline]
     pub fn eval_eq(ast: AST, exp: RetValue) {
-        use RetValue::*;
         let result = interp(&ast, &mut prelude_env()).unwrap();
-        match (&result, &exp) {
-            (Number(n1), Number(n2)) => assert_eq!(n1, n2),
-            (Boolean(b1), Boolean(b2)) => assert_eq!(b1, b2),
-            (Procedure(_), Procedure(_)) => todo!(),
-            _ => panic!("{} is not equal to {}", result, exp),
-        }
+        assert!(
+            result == exp,
+            "\n result = `{}`\n expect = `{}`",
+            result,
+            exp
+        );
     }
 
     #[test]

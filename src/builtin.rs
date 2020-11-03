@@ -2,6 +2,27 @@ use crate::utils::*;
 use num::{pow::Pow, Integer, One, Signed, Zero};
 use std::convert::TryFrom;
 
+fn equal_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [rv1, rv2] => Ok(RetValue::Boolean(rv1 == rv2)),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
+fn eqv_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [rv1, rv2] => Ok(RetValue::Boolean(rv1 == rv2)),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
+fn eq_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [rv1, rv2] => Ok(RetValue::Boolean(rv1 == rv2)),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
 pub fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
@@ -202,6 +223,9 @@ fn not(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
 
 pub fn prelude_env() -> Env {
     make_env! {
+        "equal?"     => equal_q,
+        "eqv?"       => eqv_q,
+        "eq?"        => eq_q,
         "+"          => plus,
         "-"          => minus,
         "*"          => multiply,
@@ -245,6 +269,14 @@ mod test {
     #[inline]
     fn snum(s: &str) -> crate::utils::RetValue {
         crate::utils::RetValue::num(s.parse().unwrap())
+    }
+
+    #[test]
+    fn equal_q_1() {
+        eval_eq("(equal? 2 2)", rvbool(true));
+        eval_eq("(equal? #t #t)", rvbool(true));
+        eval_eq("(equal? 1 2)", rvbool(false));
+        eval_eq("(equal? #t #f)", rvbool(false));
     }
 
     #[test]

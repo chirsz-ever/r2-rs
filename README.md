@@ -33,9 +33,9 @@ examples 目录下提供了一些示例源代码文件：
 - [x] 整合 `RetValue` 到 AST 中
 - [x] 限制 deine 语法的出现范围
 - [x] 增加原生 `boolean` 类型与 `if` 语法
-- [ ] 增加 `number?`，`boolean?`，`zero?` 等函数
+- [x] 增加 `number?`，`boolean?`，`zero?` 等函数
   - [x] `number?`，`boolean?`，`procedure?`，`integer?`
-  - [ ] `eqv?`，`equal?`
+  - [x] `eqv?`，`equal?`，`eq?`
   - [x] `zero?`，`positive?`，`negative`，`odd?`，`even?`
   - [x] `=`，`<`，`>`，`<=`，`>=`
   - [x] `max`，`min`，`abs`，`expt`

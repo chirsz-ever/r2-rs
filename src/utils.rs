@@ -51,12 +51,24 @@ pub fn bind(x: &str, e: AST, body: Vec<AST>) -> AST {
     }
 }
 
+type R2Function = dyn Fn(Option<&str>, &[RetValue]) -> anyhow::Result<RetValue>;
+
 #[derive(Clone)]
-pub struct Function(pub Rc<dyn Fn(Option<&str>, &[RetValue]) -> anyhow::Result<RetValue>>);
+pub struct Function(pub Rc<R2Function>);
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<procedure {:p}>", &*self.0)
+    }
+}
+
+impl PartialEq<Self> for Function {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(
+            &*self.0 as *const R2Function as *const u8,
+            &*other.0 as *const R2Function as *const u8,
+        )
     }
 }
 
@@ -75,7 +87,7 @@ impl Function {
 }
 
 // The "final" value
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RetValue {
     Number(Rc<BigInt>),
     Boolean(bool),

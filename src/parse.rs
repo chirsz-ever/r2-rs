@@ -120,9 +120,18 @@ pub mod test {
     use crate::eval::test::*;
 
     #[inline]
-    pub fn eval_eq(exp: &str, v: RetValue) {
-        let ast = parse_repl_input(exp.trim()).unwrap();
-        crate::eval::test::eval_eq(ast, v);
+    pub fn eval_eq(src: &str, v: RetValue) {
+        let ast = parse_repl_input(src.trim()).unwrap();
+        let result = crate::eval::interp(&ast, &mut prelude_env()).unwrap();
+        assert!(
+            result == v,
+            "parse `{}`:\n \
+              result = `{}`\n \
+              expect = `{}`",
+            src,
+            result,
+            v
+        );
     }
 
     #[test]
