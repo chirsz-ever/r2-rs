@@ -192,6 +192,14 @@ fn expt(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     }
 }
 
+fn not(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+    match args {
+        [RetValue::Boolean(false)] => Ok(RetValue::Boolean(true)),
+        [_] => Ok(RetValue::Boolean(false)),
+        _ => fail_wrong_argc!(name),
+    }
+}
+
 pub fn prelude_env() -> Env {
     make_env! {
         "+"          => plus,
@@ -216,6 +224,7 @@ pub fn prelude_env() -> Env {
         "min"        => num_min,
         "abs"        => num_abs,
         "expt"       => expt,
+        "not"        => not,
         "is_zero"    =>
             "(lambda (n)
                 (define tru (lambda (x) (lambda (y) x)))
@@ -401,5 +410,13 @@ mod test {
         eval_eq("(expt 1 -1)", rvnum(1));
         eval_eq("(expt 2 -1)", rvnum(0));
         eval_eq("(expt 32 23)", snum("41538374868278621028243970633760768"));
+    }
+
+    #[test]
+    fn not_1() {
+        eval_eq("(not #t)", rvbool(false));
+        eval_eq("(not 3)", rvbool(false));
+        eval_eq("(not #f)", rvbool(true));
+        eval_eq("(not zero?)", rvbool(false));
     }
 }
