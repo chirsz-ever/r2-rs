@@ -111,12 +111,12 @@ pub mod test {
 
     #[inline]
     pub fn op(opc: &str, arg1: AST, arg2: AST) -> AST {
-        use crate::builtin::*;
+        use crate::builtin;
         let bf = match opc {
-            "+" => builtin_plus,
-            "-" => builtin_minus,
-            "*" => builtin_multiply,
-            "/" => builtin_divide,
+            "+" => builtin::plus,
+            "-" => builtin::minus,
+            "*" => builtin::multiply,
+            "/" => builtin::divide,
             _ => unreachable!(),
         };
         Application {

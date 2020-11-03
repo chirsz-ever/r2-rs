@@ -1,7 +1,7 @@
 use crate::utils::*;
 use num::{Integer, Signed, Zero};
 
-fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+pub fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -14,7 +14,7 @@ fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     Ok(RetValue::num(sum))
 }
 
-fn multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+pub fn multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -30,7 +30,7 @@ fn multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     Ok(RetValue::num(prod))
 }
 
-fn minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+pub fn minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -50,7 +50,7 @@ fn minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     }
 }
 
-fn divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+pub fn divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -111,6 +111,12 @@ number_predicate! { negative_q, n, n.is_negative()          }
 number_predicate! { even_q,     n, n.is_even()              }
 number_predicate! { odd_q,      n, n.is_odd()               }
 
+number_binary_predicate! { num_eq, n1, n2, n1 == n2 }
+number_binary_predicate! { num_lt, n1, n2, n1 <  n2 }
+number_binary_predicate! { num_gt, n1, n2, n1 >  n2 }
+number_binary_predicate! { num_le, n1, n2, n1 <= n2 }
+number_binary_predicate! { num_ge, n1, n2, n1 >= n2 }
+
 pub fn prelude_env() -> Env {
     make_env! {
         "+"          => plus,
@@ -126,6 +132,11 @@ pub fn prelude_env() -> Env {
         "negative?"  => negative_q,
         "even?"      => even_q,
         "odd?"       => odd_q,
+        "="          => num_eq,
+        "<"          => num_lt,
+        ">"          => num_gt,
+        "<="         => num_le,
+        ">="         => num_le,
         "is_zero"    =>
             "(lambda (n)
                 (define tru (lambda (x) (lambda (y) x)))

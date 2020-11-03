@@ -73,3 +73,16 @@ macro_rules! number_predicate {
         }
     };
 }
+
+macro_rules! number_binary_predicate {
+    ( $name:ident, $n1:ident, $n2:ident, $cond:expr ) => {
+        fn $name(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+            match args {
+                [RetValue::Number($n1), RetValue::Number($n2)] => Ok(RetValue::Boolean($cond)),
+                [RetValue::Number(_), arg2] => fail_nan!(name, arg2),
+                [arg1, _] => fail_nan!(name, arg1),
+                _ => fail_wrong_argc!(name),
+            }
+        }
+    };
+}
