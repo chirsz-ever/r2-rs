@@ -1,5 +1,5 @@
 pub use crate::builtin::prelude_env;
-pub use num_bigint::BigInt;
+pub use num::BigInt;
 use std::fmt;
 use std::rc::Rc;
 

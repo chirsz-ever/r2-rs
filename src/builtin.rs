@@ -1,7 +1,7 @@
 use crate::utils::*;
-use num_traits::identities::Zero;
+use num::{Integer, Signed, Zero};
 
-pub fn builtin_plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -14,7 +14,7 @@ pub fn builtin_plus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<Ret
     Ok(RetValue::num(sum))
 }
 
-pub fn builtin_multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -30,7 +30,7 @@ pub fn builtin_multiply(name: Option<&str>, args: &[RetValue]) -> anyhow::Result
     Ok(RetValue::num(prod))
 }
 
-pub fn builtin_minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -50,7 +50,7 @@ pub fn builtin_minus(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<Re
     }
 }
 
-pub fn builtin_divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     for arg in args {
         fail_if_nan!(&name, arg);
     }
@@ -73,7 +73,7 @@ pub fn builtin_divide(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<R
     }
 }
 
-pub fn builtin_number_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn number_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     match args {
         [RetValue::Number(_)] => Ok(RetValue::Boolean(true)),
         [_] => Ok(RetValue::Boolean(false)),
@@ -81,7 +81,7 @@ pub fn builtin_number_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result
     }
 }
 
-pub fn builtin_boolean_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn boolean_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     match args {
         [RetValue::Boolean(_)] => Ok(RetValue::Boolean(true)),
         [_] => Ok(RetValue::Boolean(false)),
@@ -89,7 +89,7 @@ pub fn builtin_boolean_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Resul
     }
 }
 
-pub fn builtin_procedure_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn procedure_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     match args {
         [RetValue::Procedure(_)] => Ok(RetValue::Boolean(true)),
         [_] => Ok(RetValue::Boolean(false)),
@@ -97,7 +97,7 @@ pub fn builtin_procedure_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Res
     }
 }
 
-pub fn builtin_integer_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+fn integer_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
     match args {
         [RetValue::Number(_)] => Ok(RetValue::Boolean(true)),
         [_] => Ok(RetValue::Boolean(false)),
@@ -105,26 +105,28 @@ pub fn builtin_integer_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Resul
     }
 }
 
-pub fn builtin_zero_q(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
-    match args {
-        [RetValue::Number(arg)] => Ok(RetValue::Boolean(arg.is_zero())),
-        [arg] => fail_nan!(name, arg),
-        _ => fail_wrong_argc!(name),
-    }
-}
+number_predicate! { zero_q,     n, n.is_zero()              }
+number_predicate! { positive_q, n, n.is_positive()          }
+number_predicate! { negative_q, n, n.is_negative()          }
+number_predicate! { even_q,     n, n.is_even()              }
+number_predicate! { odd_q,      n, n.is_odd()               }
 
 pub fn prelude_env() -> Env {
     make_env! {
-        "+" => builtin_plus,
-        "-" => builtin_minus,
-        "*" => builtin_multiply,
-        "/" => builtin_divide,
-        "zero?" => builtin_zero_q,
-        "number?" => builtin_number_q,
-        "boolean?" => builtin_boolean_q,
-        "procedure?" => builtin_procedure_q,
-        "integer?" => builtin_integer_q,
-        "is_zero" =>
+        "+"          => plus,
+        "-"          => minus,
+        "*"          => multiply,
+        "/"          => divide,
+        "number?"    => number_q,
+        "boolean?"   => boolean_q,
+        "procedure?" => procedure_q,
+        "integer?"   => integer_q,
+        "zero?"      => zero_q,
+        "positive?"  => positive_q,
+        "negative?"  => negative_q,
+        "even?"      => even_q,
+        "odd?"       => odd_q,
+        "is_zero"    =>
             "(lambda (n)
                 (define tru (lambda (x) (lambda (y) x)))
                 (define fls (lambda (x) (lambda (y) y)))
@@ -138,11 +140,11 @@ pub fn prelude_env() -> Env {
 
 #[cfg(test)]
 mod test {
-    use crate::eval::test::{rvnum, rvbool};
+    use crate::eval::test::{rvbool, rvnum};
     use crate::parse::test::eval_eq;
 
     #[test]
-    fn builtin_add_1() {
+    fn add_1() {
         eval_eq("(+)", rvnum(0));
         eval_eq("(+ 2)", rvnum(2));
         eval_eq("(+ 3 4)", rvnum(7));
@@ -150,7 +152,7 @@ mod test {
     }
 
     #[test]
-    fn builtin_minus_1() {
+    fn minus_1() {
         eval_eq("(- 2)", rvnum(-2));
         eval_eq("(- 3 4)", rvnum(-1));
         eval_eq("(- 3 4 5)", rvnum(-6));
@@ -158,12 +160,12 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn builtin_minus_2() {
+    fn minus_2() {
         eval_eq("(-)", rvnum(0));
     }
 
     #[test]
-    fn builtin_mul_1() {
+    fn mul_1() {
         eval_eq("(*)", rvnum(1));
         eval_eq("(* 2)", rvnum(2));
         eval_eq("(* 3 4)", rvnum(12));
@@ -171,7 +173,7 @@ mod test {
     }
 
     #[test]
-    fn builtin_divide_1() {
+    fn divide_1() {
         eval_eq("(/ 1)", rvnum(1));
         eval_eq("(/ 2)", rvnum(0));
         eval_eq("(/ 4 2)", rvnum(2));
@@ -180,19 +182,19 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn builtin_divide_2() {
+    fn divide_2() {
         eval_eq("(/)", rvnum(0));
     }
 
     #[test]
     #[should_panic]
-    fn builtin_divide_3() {
+    fn divide_3() {
         eval_eq("(/ 0)", rvnum(0));
     }
 
     #[test]
     #[should_panic]
-    fn builtin_divide_4() {
+    fn divide_4() {
         eval_eq("(/ 4 0)", rvnum(0));
     }
 

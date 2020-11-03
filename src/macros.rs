@@ -61,3 +61,15 @@ macro_rules! make_env {
         }
     };
 }
+
+macro_rules! number_predicate {
+    ( $name:ident, $arg:ident, $cond:expr ) => {
+        fn $name(name: Option<&str>, args: &[RetValue]) -> anyhow::Result<RetValue> {
+            match args {
+                [$crate::utils::RetValue::Number($arg)] => Ok(RetValue::Boolean($cond)),
+                [arg] => fail_nan!(name, arg),
+                _ => fail_wrong_argc!(name),
+            }
+        }
+    };
+}

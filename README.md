@@ -36,7 +36,7 @@ examples 目录下提供了一些示例源代码文件：
 - [ ] 增加 `number?`，`boolean?`，`zero?` 等函数
   - [x] `number?`，`boolean?`，`procedure?`，`integer?`
   - [ ] `eqv?`，`equal?`
-  - [ ] `zero?`，`positive?`，`negative`，`odd?`，`even?`
+  - [x] `zero?`，`positive?`，`negative`，`odd?`，`even?`
   - [ ] `=`，`<`，`>`，`<=`，`>=`
   - [ ] `max`，`min`，`abs`，`expt`
   - [ ] `not`，`and`，`or`
