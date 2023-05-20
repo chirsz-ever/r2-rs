@@ -17,7 +17,7 @@ macro_rules! fail_with_caller {
 
 macro_rules! fail_nan {
     ($name:expr, $arg:expr) => {
-        fail_with_caller!($name, "{} is not a number", $arg);
+        fail_with_caller!($name, "{} is not a number", $arg)
     };
 }
 
@@ -34,7 +34,7 @@ macro_rules! fail_if_nan {
 
 macro_rules! fail_wrong_argc {
     ($name:expr) => {
-        fail_with_caller!($name, "incorrect argument count");
+        fail_with_caller!($name, "incorrect argument count")
     };
 }
 
